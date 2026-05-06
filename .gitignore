@@ -22,3 +22,10 @@ frontend/dist/
 
 # Logs
 *.log
+
+# Playwright test artifacts
+.playwright-mcp/
+
+# Test artifacts
+home-page
+workflow-list
