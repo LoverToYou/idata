@@ -1,0 +1,66 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e7]: IDATA
+    - menubar [ref=e8]:
+      - menuitem "工作台" [ref=e9] [cursor=pointer]:
+        - img [ref=e11]
+        - generic [ref=e15]: 工作台
+      - menuitem "数据源管理" [ref=e16] [cursor=pointer]:
+        - img [ref=e18]
+        - generic [ref=e21]: 数据源管理
+      - menuitem "SQL 编辑器" [ref=e22] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e26]: SQL 编辑器
+      - menuitem "工作流管理" [ref=e27] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e31]: 工作流管理
+      - menuitem "任务监控" [ref=e32] [cursor=pointer]:
+        - generic [ref=e34]: 任务监控
+  - generic [ref=e35]:
+    - generic [ref=e37]: 新建数据源
+    - main [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]: 新建数据源
+        - generic [ref=e42]:
+          - generic [ref=e43]:
+            - generic [ref=e44]: "* 名称"
+            - textbox "* 名称" [ref=e48]:
+              - /placeholder: 请输入数据源名称
+          - generic [ref=e49]:
+            - generic [ref=e50]: "* 类型"
+            - generic [ref=e53] [cursor=pointer]:
+              - generic:
+                - combobox "* 类型" [ref=e55]
+                - generic [ref=e56]: MySQL
+              - img [ref=e59]
+          - generic [ref=e61]:
+            - generic [ref=e62]: "* 主机地址"
+            - textbox "* 主机地址" [ref=e66]:
+              - /placeholder: 请输入主机地址
+          - generic [ref=e67]:
+            - generic [ref=e68]: "* 端口"
+            - generic [ref=e70]:
+              - button "decrease number" [ref=e71] [cursor=pointer]:
+                - img [ref=e73]
+              - button "increase number" [ref=e75] [cursor=pointer]:
+                - img [ref=e77]
+              - spinbutton "* 端口" [ref=e81]: "3306"
+          - generic [ref=e82]:
+            - generic [ref=e83]: 数据库名
+            - textbox "数据库名" [ref=e87]:
+              - /placeholder: 请输入数据库名
+          - generic [ref=e88]:
+            - generic [ref=e89]: "* 用户名"
+            - textbox "* 用户名" [ref=e93]:
+              - /placeholder: 请输入用户名
+          - generic [ref=e94]:
+            - generic [ref=e95]: "* 密码"
+            - textbox "* 密码" [ref=e99]:
+              - /placeholder: 请输入密码
+          - generic [ref=e101]:
+            - button "创建" [ref=e102] [cursor=pointer]:
+              - generic [ref=e103]: 创建
+            - button "测试连接" [ref=e104] [cursor=pointer]:
+              - generic [ref=e105]: 测试连接
+            - button "取消" [ref=e106] [cursor=pointer]:
+              - generic [ref=e107]: 取消

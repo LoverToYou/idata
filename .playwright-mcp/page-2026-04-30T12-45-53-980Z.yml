@@ -1,0 +1,63 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e7]: IDATA
+    - menubar [ref=e8]:
+      - menuitem "工作台" [ref=e9] [cursor=pointer]:
+        - img [ref=e11]
+        - generic [ref=e15]: 工作台
+      - menuitem "数据源管理" [ref=e16] [cursor=pointer]:
+        - img [ref=e18]
+        - generic [ref=e21]: 数据源管理
+      - menuitem "SQL 任务管理" [ref=e22] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e26]: SQL 任务管理
+      - menuitem "工作流管理" [ref=e27] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e31]: 工作流管理
+      - menuitem "任务监控" [ref=e32] [cursor=pointer]:
+        - generic [ref=e34]: 任务监控
+  - generic [ref=e35]:
+    - generic [ref=e37]: SQL 任务管理
+    - main [ref=e38]:
+      - generic [ref=e133]:
+        - generic [ref=e136]:
+          - generic [ref=e137]:
+            - button "返回" [ref=e138] [cursor=pointer]:
+              - generic [ref=e139]:
+                - img [ref=e141]
+                - text: 返回
+            - textbox "任务名称" [ref=e145]: 用户查询
+            - generic [ref=e147]: OTHER
+            - generic [ref=e149]: 草稿
+            - generic [ref=e151] [cursor=pointer]:
+              - generic:
+                - combobox [ref=e153]
+                - generic [ref=e154]: ces (MYSQL)
+              - img [ref=e157]
+          - generic [ref=e159]:
+            - button "发布" [ref=e160] [cursor=pointer]:
+              - generic [ref=e161]:
+                - img [ref=e163]
+                - text: 发布
+            - button "保存" [ref=e165] [cursor=pointer]:
+              - generic [ref=e166]:
+                - img [ref=e168]
+                - text: 保存
+            - button "格式化" [ref=e170] [cursor=pointer]:
+              - generic [ref=e171]: 格式化
+            - button "解析" [ref=e172] [cursor=pointer]:
+              - generic [ref=e173]: 解析
+            - button "执行计划" [ref=e174] [cursor=pointer]:
+              - generic [ref=e175]: 执行计划
+            - button "▶ 运行 (Ctrl+Enter)" [ref=e176] [cursor=pointer]:
+              - generic [ref=e177]: ▶ 运行 (Ctrl+Enter)
+        - generic [ref=e183]:
+          - tablist [ref=e187]:
+            - tab "查询结果" [selected] [ref=e189]
+            - tab "执行计划" [ref=e190]
+            - tab "优化建议" [ref=e191]
+            - tab "分析信息" [ref=e192]
+          - tabpanel "查询结果" [ref=e194]:
+            - generic [ref=e195]:
+              - img [ref=e197]
+              - paragraph [ref=e214]: 运行 SQL 查看结果

@@ -1,0 +1,56 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e7]: IDATA
+    - menubar [ref=e8]:
+      - menuitem "工作台" [ref=e9] [cursor=pointer]:
+        - img [ref=e11]
+        - generic [ref=e15]: 工作台
+      - menuitem "数据源管理" [ref=e16] [cursor=pointer]:
+        - img [ref=e18]
+        - generic [ref=e21]: 数据源管理
+      - menuitem "SQL 编辑器" [ref=e22] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e26]: SQL 编辑器
+      - menuitem "工作流管理" [ref=e27] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e31]: 工作流管理
+      - menuitem "任务监控" [ref=e32] [cursor=pointer]:
+        - generic [ref=e34]: 任务监控
+  - generic [ref=e35]:
+    - generic [ref=e37]: 数据源管理
+    - main [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e41]:
+          - generic [ref=e42]: 数据源列表
+          - button "新建数据源" [ref=e43] [cursor=pointer]:
+            - generic [ref=e44]:
+              - img [ref=e46]
+              - text: 新建数据源
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - table [ref=e52]:
+              - rowgroup [ref=e63]:
+                - row "ID 名称 类型 主机地址 端口 数据库 用户名 更新时间 操作" [ref=e64]:
+                  - columnheader "ID" [ref=e65]:
+                    - generic [ref=e66]: ID
+                  - columnheader "名称" [ref=e67]:
+                    - generic [ref=e68]: 名称
+                  - columnheader "类型" [ref=e69]:
+                    - generic [ref=e70]: 类型
+                  - columnheader "主机地址" [ref=e71]:
+                    - generic [ref=e72]: 主机地址
+                  - columnheader "端口" [ref=e73]:
+                    - generic [ref=e74]: 端口
+                  - columnheader "数据库" [ref=e75]:
+                    - generic [ref=e76]: 数据库
+                  - columnheader "用户名" [ref=e77]:
+                    - generic [ref=e78]: 用户名
+                  - columnheader "更新时间" [ref=e79]:
+                    - generic [ref=e80]: 更新时间
+                  - columnheader "操作" [ref=e81]:
+                    - generic [ref=e82]: 操作
+            - generic [ref=e86]:
+              - table:
+                - rowgroup
+              - generic [ref=e88]: No Data
+          - img [ref=e91]

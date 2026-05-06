@@ -1,0 +1,118 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e7]: IDATA
+    - menubar [ref=e8]:
+      - menuitem "工作台" [ref=e9] [cursor=pointer]:
+        - img [ref=e11]
+        - generic [ref=e15]: 工作台
+      - menuitem "数据源管理" [ref=e16] [cursor=pointer]:
+        - img [ref=e18]
+        - generic [ref=e21]: 数据源管理
+      - menuitem "SQL 编辑器" [ref=e22] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e26]: SQL 编辑器
+      - menuitem "工作流管理" [ref=e27] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e31]: 工作流管理
+      - menuitem "任务监控" [ref=e32] [cursor=pointer]:
+        - generic [ref=e34]: 任务监控
+  - generic [ref=e35]:
+    - generic [ref=e37]: 任务监控
+    - main [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e42]:
+          - img [ref=e45]
+          - generic [ref=e47]:
+            - generic [ref=e48]: "1"
+            - generic [ref=e49]: 总工作流数
+        - generic [ref=e52]:
+          - img [ref=e55]
+          - generic [ref=e57]:
+            - generic [ref=e58]: "0"
+            - generic [ref=e59]: 运行中实例
+        - generic [ref=e62]:
+          - img [ref=e65]
+          - generic [ref=e67]:
+            - generic [ref=e68]: "0"
+            - generic [ref=e69]: 本周失败
+        - generic [ref=e72]:
+          - img [ref=e75]
+          - generic [ref=e79]:
+            - generic [ref=e80]: 0ms
+            - generic [ref=e81]: 平均耗时
+      - generic [ref=e82]:
+        - generic [ref=e84]:
+          - generic [ref=e85]: 执行实例
+          - generic [ref=e86]:
+            - textbox "搜索工作流名称" [ref=e89]
+            - generic [ref=e91] [cursor=pointer]:
+              - generic:
+                - combobox [ref=e93]
+                - generic [ref=e94]: 状态
+              - img [ref=e97]
+            - generic [ref=e99]:
+              - img [ref=e101]
+              - combobox "开始日期" [ref=e103]
+              - generic [ref=e104]: 至
+              - combobox "结束日期" [ref=e105]
+            - button [ref=e106] [cursor=pointer]:
+              - img [ref=e108]
+            - generic:
+              - generic: 自动刷新 30s
+        - generic [ref=e111]:
+          - generic [ref=e112]:
+            - table [ref=e114]:
+              - rowgroup [ref=e124]:
+                - row "ID Sort by ID 工作流名称 状态 Sort by 状态 开始时间 Sort by 开始时间 结束时间 Sort by 结束时间 耗时 触发方式 操作" [ref=e125]:
+                  - columnheader "ID Sort by ID" [ref=e126] [cursor=pointer]:
+                    - generic [ref=e127]:
+                      - text: ID
+                      - button "Sort by ID" [ref=e128]
+                  - columnheader "工作流名称" [ref=e131]:
+                    - generic [ref=e132]: 工作流名称
+                  - columnheader "状态 Sort by 状态" [ref=e133] [cursor=pointer]:
+                    - generic [ref=e134]:
+                      - text: 状态
+                      - button "Sort by 状态" [ref=e135]
+                  - columnheader "开始时间 Sort by 开始时间" [ref=e138] [cursor=pointer]:
+                    - generic [ref=e139]:
+                      - text: 开始时间
+                      - button "Sort by 开始时间" [ref=e140]
+                  - columnheader "结束时间 Sort by 结束时间" [ref=e143] [cursor=pointer]:
+                    - generic [ref=e144]:
+                      - text: 结束时间
+                      - button "Sort by 结束时间" [ref=e145]
+                  - columnheader "耗时" [ref=e148]:
+                    - generic [ref=e149]: 耗时
+                  - columnheader "触发方式" [ref=e150]:
+                    - generic [ref=e151]: 触发方式
+                  - columnheader "操作" [ref=e152]:
+                    - generic [ref=e153]: 操作
+            - table [ref=e158]:
+              - rowgroup [ref=e168]:
+                - row "1 真实ETL工作流 成功 2026/04/30 17:10:38 2026/04/30 17:10:38 0ms 手动 详情 日志" [ref=e169]:
+                  - cell "1" [ref=e170]:
+                    - generic [ref=e171]: "1"
+                  - cell "真实ETL工作流" [ref=e172]:
+                    - generic [ref=e173]: 真实ETL工作流
+                  - cell "成功" [ref=e174]:
+                    - generic [ref=e175]:
+                      - generic:
+                        - generic: 成功
+                  - cell "2026/04/30 17:10:38" [ref=e176]:
+                    - generic [ref=e177]: 2026/04/30 17:10:38
+                  - cell "2026/04/30 17:10:38" [ref=e178]:
+                    - generic [ref=e179]: 2026/04/30 17:10:38
+                  - cell "0ms" [ref=e180]:
+                    - generic [ref=e181]: 0ms
+                  - cell "手动" [ref=e182]:
+                    - generic [ref=e183]:
+                      - generic:
+                        - generic: 手动
+                  - cell "详情 日志" [ref=e184]:
+                    - generic [ref=e185]:
+                      - button "详情" [ref=e186] [cursor=pointer]:
+                        - generic [ref=e187]: 详情
+                      - button "日志" [ref=e188] [cursor=pointer]:
+                        - generic [ref=e189]: 日志
+          - img [ref=e192]

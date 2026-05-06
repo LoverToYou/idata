@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.idata.mapper.NodeExecutionLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.idata.entity.NodeExecutionLog">
+        <id column="id" property="id"/>
+        <result column="instance_id" property="instanceId"/>
+        <result column="node_id" property="nodeId"/>
+        <result column="node_name" property="nodeName"/>
+        <result column="status" property="status"/>
+        <result column="started_at" property="startedAt"/>
+        <result column="finished_at" property="finishedAt"/>
+        <result column="datax_pid" property="dataxPid"/>
+        <result column="log_path" property="logPath"/>
+        <result column="error_message" property="errorMessage"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        id, instance_id, node_id, node_name, status, started_at, finished_at, datax_pid, log_path, error_message, created_at
+    </sql>
+
+</mapper>

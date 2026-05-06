@@ -1,0 +1,77 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e7]: IDATA
+      - menubar [ref=e8]:
+        - menuitem "工作台" [ref=e9] [cursor=pointer]:
+          - img [ref=e11]
+          - generic [ref=e15]: 工作台
+        - menuitem "数据源管理" [ref=e16] [cursor=pointer]:
+          - img [ref=e18]
+          - generic [ref=e21]: 数据源管理
+        - menuitem "SQL 任务管理" [ref=e22] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e26]: SQL 任务管理
+        - menuitem "工作流管理" [ref=e27] [cursor=pointer]:
+          - img [ref=e29]
+          - generic [ref=e31]: 工作流管理
+        - menuitem "任务监控" [ref=e32] [cursor=pointer]:
+          - generic [ref=e34]: 任务监控
+    - generic [ref=e35]:
+      - generic [ref=e37]: SQL 任务管理
+      - main [ref=e38]:
+        - generic [ref=e244]:
+          - generic [ref=e247]:
+            - generic [ref=e248]:
+              - button "返回" [ref=e249] [cursor=pointer]:
+                - generic [ref=e250]:
+                  - img [ref=e252]
+                  - text: 返回
+              - textbox "任务名称" [ref=e256]: 用户查询
+              - generic [ref=e258]: OTHER
+              - generic [ref=e260]: 草稿
+              - generic [ref=e262] [cursor=pointer]:
+                - generic:
+                  - combobox [ref=e264]
+                  - generic [ref=e265]: "1"
+                - img [ref=e268]
+            - generic [ref=e270]:
+              - button "发布" [ref=e271] [cursor=pointer]:
+                - generic [ref=e272]:
+                  - img [ref=e274]
+                  - text: 发布
+              - button "保存" [ref=e276] [cursor=pointer]:
+                - generic [ref=e277]:
+                  - img [ref=e279]
+                  - text: 保存
+              - button "格式化" [ref=e281] [cursor=pointer]:
+                - generic [ref=e282]: 格式化
+              - button "解析" [ref=e283] [cursor=pointer]:
+                - generic [ref=e284]: 解析
+              - button "执行计划" [ref=e285] [cursor=pointer]:
+                - generic [ref=e286]: 执行计划
+              - button "▶ 运行 (Ctrl+Enter)" [ref=e287] [cursor=pointer]:
+                - generic [ref=e288]: ▶ 运行 (Ctrl+Enter)
+          - generic [ref=e294]:
+            - tablist [ref=e298]:
+              - tab "查询结果" [ref=e300]
+              - tab "执行计划" [ref=e301]
+              - tab "优化建议" [ref=e302]
+              - tab "分析信息" [selected] [ref=e303]
+            - tabpanel "分析信息" [ref=e305]:
+              - table [ref=e309]:
+                - rowgroup [ref=e310]:
+                  - row "SQL 类型 SELECT 语法校验 通过" [ref=e311]:
+                    - cell "SQL 类型" [ref=e312]
+                    - cell "SELECT" [ref=e313]
+                    - cell "语法校验" [ref=e314]
+                    - cell "通过" [ref=e315]:
+                      - generic [ref=e317]: 通过
+                  - row "涉及表 users JOIN 类型 -" [ref=e318]:
+                    - cell "涉及表" [ref=e319]
+                    - cell "users" [ref=e320]
+                    - cell "JOIN 类型" [ref=e321]
+                    - cell "-" [ref=e322]
+  - generic [ref=e131]:
+    - alert
+    - alert
