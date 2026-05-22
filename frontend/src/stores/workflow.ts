@@ -3,19 +3,43 @@ import { ref } from 'vue'
 import type { WorkflowDefinition } from '@/types'
 import * as workflowApi from '@/api/workflow'
 
-export interface NodeConfig {
-  datasourceId: number | null
-  tableName: string
-  columns: string[]
-  where: string
-  writeMode: 'insert' | 'overwrite'
-  dataxReader: string
-  dataxWriter: string
+export interface SqlTaskConfig {
+  type: 'sql_task'
+  sqlTaskId: number | null
 }
 
+export interface DataxConfig {
+  type: 'datax'
+  dataxTaskId: number | null
+}
+
+export type NodeConfig = SqlTaskConfig | DataxConfig
+
 export interface DagNodeData {
-  nodeType: 'source' | 'sink'
+  nodeType: 'sql_task' | 'datax'
   config: NodeConfig
+}
+
+/** Map from DAG JSON node type → Vue Flow component type */
+function dagTypeToFlowType(dagType: string): string {
+  if (dagType === 'sql_task') return 'sqlTaskNode'
+  return 'dataxNode' // 'datax', 'source', 'sink' all map to dataxNode
+}
+
+/** Map from Vue Flow component type → DAG JSON node type */
+function flowTypeToDagType(vfType: string): string {
+  if (vfType === 'sqlTaskNode') return 'sql_task'
+  return 'datax'
+}
+
+function createDefaultConfig(nodeType: string): NodeConfig {
+  if (nodeType === 'sql_task') {
+    return { type: 'sql_task', sqlTaskId: null }
+  }
+  return {
+    type: 'datax',
+    dataxTaskId: null,
+  }
 }
 
 export const useWorkflowStore = defineStore('workflow', () => {
@@ -29,24 +53,22 @@ export const useWorkflowStore = defineStore('workflow', () => {
     try {
       const data = JSON.parse(dagJson)
       if (data.nodes && Array.isArray(data.nodes)) {
-        nodes.value = data.nodes.map((n: any) => ({
-          id: n.id,
-          type: n.type === 'source' ? 'sourceNode' : 'sinkNode',
-          position: n.position,
-          label: n.label,
-          data: {
-            nodeType: n.type,
-            config: {
-              datasourceId: n.config?.datasourceId ?? null,
-              tableName: n.config?.tableName ?? '',
-              columns: n.config?.columns ?? ['*'],
-              where: n.config?.where ?? '',
-              writeMode: n.config?.writeMode ?? 'insert',
-              dataxReader: n.config?.dataxReader ?? '',
-              dataxWriter: n.config?.dataxWriter ?? '',
+        nodes.value = data.nodes.map((n: any) => {
+          const dagType = n.type || 'datax'
+          const flowType = dagTypeToFlowType(dagType)
+          const defaultConfig = createDefaultConfig(dagType)
+
+          return {
+            id: n.id,
+            type: flowType,
+            position: n.position,
+            label: n.label,
+            data: {
+              nodeType: dagType,
+              config: { ...defaultConfig, ...(n.config || {}) },
             },
-          },
-        }))
+          }
+        })
       } else {
         nodes.value = []
       }
@@ -70,17 +92,9 @@ export const useWorkflowStore = defineStore('workflow', () => {
   function toDagJson(): string {
     const outNodes: any[] = (nodes.value as any[]).map((n: any) => ({
       id: n.id,
-      type: n.data?.nodeType ?? 'source',
+      type: flowTypeToDagType(n.type),
       label: n.label ?? '',
-      config: n.data?.config ?? {
-        datasourceId: null,
-        tableName: '',
-        columns: ['*'],
-        where: '',
-        writeMode: 'insert',
-        dataxReader: '',
-        dataxWriter: '',
-      },
+      config: n.data?.config ?? createDefaultConfig('datax'),
       position: n.position,
     }))
     const outEdges: any[] = (edges.value as any[]).map((e: any) => ({
@@ -131,27 +145,20 @@ export const useWorkflowStore = defineStore('workflow', () => {
   }
 
   function addNode(
-    template: { nodeType: string; label: string; dataxReader?: string; dataxWriter?: string },
+    template: { nodeType: string; label: string },
     position: { x: number; y: number },
   ) {
     const id = `node_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-    const nodeType = template.nodeType === 'source' ? 'sourceNode' : 'sinkNode'
+    const dagType = template.nodeType === 'sql_task' ? 'sql_task' : 'datax'
+    const flowType = dagTypeToFlowType(dagType)
     const newNode = {
       id,
-      type: nodeType,
+      type: flowType,
       position,
       label: template.label,
       data: {
-        nodeType: template.nodeType as 'source' | 'sink',
-        config: {
-          datasourceId: null,
-          tableName: '',
-          columns: ['*'],
-          where: '',
-          writeMode: 'insert' as const,
-          dataxReader: template.dataxReader || '',
-          dataxWriter: template.dataxWriter || '',
-        },
+        nodeType: dagType as 'sql_task' | 'datax',
+        config: createDefaultConfig(dagType),
       },
     }
     nodes.value.push(newNode)

@@ -3,29 +3,52 @@ package com.idata.service.sql;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.idata.dto.SqlTaskRequest;
 import com.idata.dto.SqlTaskVO;
+import com.idata.entity.DatasourceConfig;
 import com.idata.entity.SqlTask;
+import com.idata.mapper.DatasourceConfigMapper;
 import com.idata.mapper.SqlTaskMapper;
+import com.idata.service.datasource.DatasourceService;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class SqlTaskService {
 
     private final SqlTaskMapper sqlTaskMapper;
+    private final DatasourceConfigMapper datasourceConfigMapper;
+    private final DatasourceService datasourceService;
 
-    public SqlTaskService(SqlTaskMapper sqlTaskMapper) {
+    public SqlTaskService(SqlTaskMapper sqlTaskMapper, DatasourceConfigMapper datasourceConfigMapper, DatasourceService datasourceService) {
         this.sqlTaskMapper = sqlTaskMapper;
+        this.datasourceConfigMapper = datasourceConfigMapper;
+        this.datasourceService = datasourceService;
     }
 
     public List<SqlTaskVO> listAll() {
-        return sqlTaskMapper.selectList(
+        List<SqlTask> tasks = sqlTaskMapper.selectList(
                 new LambdaQueryWrapper<SqlTask>()
                         .orderByDesc(SqlTask::getUpdatedAt)
-                )
-                .stream()
-                .map(this::toVO)
+        );
+
+        // batch test unique datasource connections
+        Map<Long, Boolean> connStatus = new HashMap<>();
+        tasks.stream()
+                .map(SqlTask::getDatasourceId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(dsId -> {
+                    try {
+                        datasourceService.testConnectionById(dsId);
+                        connStatus.put(dsId, true);
+                    } catch (Exception e) {
+                        connStatus.put(dsId, false);
+                    }
+                });
+
+        return tasks.stream()
+                .map(task -> toVO(task, connStatus))
                 .collect(Collectors.toList());
     }
 
@@ -34,7 +57,17 @@ public class SqlTaskService {
         if (task == null) {
             throw new IllegalArgumentException("SQL 任务不存在: " + id);
         }
-        return toVO(task);
+        // test connection for single task
+        Map<Long, Boolean> connStatus = new HashMap<>();
+        if (task.getDatasourceId() != null) {
+            try {
+                datasourceService.testConnectionById(task.getDatasourceId());
+                connStatus.put(task.getDatasourceId(), true);
+            } catch (Exception e) {
+                connStatus.put(task.getDatasourceId(), false);
+            }
+        }
+        return toVO(task, connStatus);
     }
 
     public SqlTaskVO create(SqlTaskRequest req) {
@@ -84,7 +117,21 @@ public class SqlTaskService {
         return toVO(sqlTaskMapper.selectById(id));
     }
 
+    public SqlTaskVO unpublish(Long id) {
+        SqlTask task = sqlTaskMapper.selectById(id);
+        if (task == null) {
+            throw new IllegalArgumentException("SQL 任务不存在: " + id);
+        }
+        task.setStatus("DRAFT");
+        sqlTaskMapper.updateById(task);
+        return toVO(sqlTaskMapper.selectById(id));
+    }
+
     private SqlTaskVO toVO(SqlTask task) {
+        return toVO(task, Collections.emptyMap());
+    }
+
+    private SqlTaskVO toVO(SqlTask task, Map<Long, Boolean> connStatus) {
         SqlTaskVO vo = new SqlTaskVO();
         vo.setId(task.getId());
         vo.setName(task.getName());
@@ -92,9 +139,18 @@ public class SqlTaskService {
         vo.setDatasourceId(task.getDatasourceId());
         vo.setSqlContent(task.getSqlContent());
         vo.setSqlType(task.getSqlType());
+        vo.setCreatedBy(task.getCreatedBy());
         vo.setStatus(task.getStatus());
         vo.setCreatedAt(task.getCreatedAt());
         vo.setUpdatedAt(task.getUpdatedAt());
+        // populate datasource type and connection status
+        if (task.getDatasourceId() != null) {
+            DatasourceConfig ds = datasourceConfigMapper.selectById(task.getDatasourceId());
+            if (ds != null) {
+                vo.setDatasourceType(ds.getType());
+                vo.setDatasourceConnected(connStatus.get(task.getDatasourceId()));
+            }
+        }
         return vo;
     }
 

@@ -14,7 +14,6 @@ public class SqlTaskRequest {
 
     private Long datasourceId;
 
-    @NotBlank(message = "SQL 内容不能为空")
     private String sqlContent;
 
     private String sqlType;

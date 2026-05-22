@@ -17,17 +17,29 @@
           <el-icon><Connection /></el-icon>
           <span>数据源管理</span>
         </el-menu-item>
+        <el-menu-item index="/parameter">
+          <el-icon><Coin /></el-icon>
+          <span>参数管理</span>
+        </el-menu-item>
+        <el-menu-item index="/datax-task">
+          <el-icon><Share /></el-icon>
+          <span>ETL 任务管理</span>
+        </el-menu-item>
         <el-menu-item index="/sql-task">
           <el-icon><Document /></el-icon>
           <span>SQL 任务管理</span>
         </el-menu-item>
         <el-menu-item index="/workflow">
-          <el-icon><Share /></el-icon>
-          <span>ETL 任务管理</span>
+          <el-icon><List /></el-icon>
+          <span>工作流管理</span>
         </el-menu-item>
         <el-menu-item index="/monitor">
           <el-icon><Monitoring /></el-icon>
           <span>任务监控</span>
+        </el-menu-item>
+        <el-menu-item index="/masking-rule">
+          <el-icon><Hide /></el-icon>
+          <span>脱敏规则管理</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -45,7 +57,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Odometer, Connection, Document, Share, Monitor as Monitoring } from '@element-plus/icons-vue'
+import { Odometer, Connection, Coin, Document, Share, Monitor as Monitoring, Hide, List } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const activeRoute = computed(() => route.path)

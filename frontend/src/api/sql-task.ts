@@ -8,6 +8,8 @@ export interface SqlTask {
   datasourceId?: number
   sqlContent: string
   sqlType?: string
+  datasourceType?: string
+  datasourceConnected?: boolean | null
   status?: string
   createdAt: string
   updatedAt: string
@@ -44,4 +46,8 @@ export function deleteTask(id: number): Promise<ApiResult<null>> {
 
 export function publishTask(id: number): Promise<ApiResult<SqlTask>> {
   return request.post(`/sql-task/${id}/publish`)
+}
+
+export function unpublishTask(id: number): Promise<ApiResult<SqlTask>> {
+  return request.post(`/sql-task/${id}/unpublish`)
 }

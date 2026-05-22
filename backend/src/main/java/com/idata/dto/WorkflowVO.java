@@ -11,6 +11,7 @@ public class WorkflowVO {
     private String description;
     private String dagJson;
     private String status;
+    private String etlType;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

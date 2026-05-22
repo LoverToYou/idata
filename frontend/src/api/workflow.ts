@@ -15,6 +15,7 @@ export function createWorkflow(data: {
   name: string
   description?: string
   dagJson?: string
+  etlType?: string
 }): Promise<ApiResult<WorkflowDefinition>> {
   return request.post('/workflow/create', data)
 }
@@ -24,6 +25,7 @@ export function updateWorkflow(data: {
   name?: string
   description?: string
   dagJson?: string
+  etlType?: string
 }): Promise<ApiResult<WorkflowDefinition>> {
   return request.put('/workflow/update', data)
 }

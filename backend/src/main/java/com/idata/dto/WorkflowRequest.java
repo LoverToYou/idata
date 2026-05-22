@@ -15,4 +15,6 @@ public class WorkflowRequest {
     private String dagJson;
 
     private String status;
+
+    private String etlType;
 }

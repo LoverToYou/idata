@@ -139,3 +139,67 @@ export function generateDataXJson(nodes: DagNode[], edges: Edge[]): string {
   const root = { job }
   return JSON.stringify(root, null, 2)
 }
+
+/**
+ * Generate DataX JSON from GUI config (new editor mode).
+ * Produces a single-source-to-single-target DataX job configuration.
+ */
+export interface GuiDataXConfig {
+  sourceDatasourceType: string
+  sourceDatasource: { username: string; password: string; jdbcUrl: string } | null
+  targetDatasourceType: string
+  targetDatasource: { username: string; password: string; jdbcUrl: string } | null
+  tableName: string
+  columns: string[]
+  filterCondition?: string
+  writeMode?: string
+  // advanced
+  channel?: number
+  splitPk?: string
+  batchSize?: number
+  encoding?: string
+  preSql?: string
+  postSql?: string
+}
+
+export function generateDataXJsonFromGuiConfig(config: GuiDataXConfig): string {
+  const readerType = config.sourceDatasourceType === 'MYSQL' ? 'mysqlreader' : 'hivereader'
+  const writerType = config.targetDatasourceType === 'MYSQL' ? 'mysqlwriter' : 'hivewriter'
+
+  const readerParam: Record<string, any> = {
+    username: config.sourceDatasource?.username || '',
+    password: config.sourceDatasource?.password || '',
+    connection: [{
+      jdbcUrl: [config.sourceDatasource?.jdbcUrl || ''],
+      table: [config.tableName],
+    }],
+    column: config.columns.length ? config.columns : ['*'],
+    ...(config.filterCondition ? { where: config.filterCondition } : {}),
+    ...(config.splitPk ? { splitPk: config.splitPk } : {}),
+    ...(config.encoding ? { encoding: config.encoding } : {}),
+  }
+
+  const writerParam: Record<string, any> = {
+    username: config.targetDatasource?.username || '',
+    password: config.targetDatasource?.password || '',
+    connection: [{
+      jdbcUrl: [config.targetDatasource?.jdbcUrl || ''],
+      table: [config.tableName],
+    }],
+    column: config.columns.length ? config.columns : ['*'],
+    writeMode: config.writeMode || 'insert',
+    ...(config.batchSize ? { batchSize: config.batchSize } : {}),
+    ...(config.encoding ? { encoding: config.encoding } : {}),
+    ...(config.preSql ? { preSql: [config.preSql] } : {}),
+    ...(config.postSql ? { postSql: [config.postSql] } : {}),
+  }
+
+  const job: Record<string, any> = {
+    setting: {
+      speed: { channel: config.channel || 1 },
+    },
+    content: [{ reader: { name: readerType, parameter: readerParam }, writer: { name: writerType, parameter: writerParam } }],
+  }
+
+  return JSON.stringify({ job }, null, 2)
+}

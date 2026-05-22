@@ -45,3 +45,32 @@ export function getHiveTableSchema(id: number, database: string, table: string):
 export function getHiveTablePartitions(id: number, database: string, table: string): Promise<ApiResult<any[]>> {
   return request.get(`/datasource/${id}/hive/${database}/tables/${table}/partitions`)
 }
+
+// Generic JDBC metadata
+export function listAccessibleDatabases(id: number): Promise<ApiResult<string[]>> {
+  return request.get(`/datasource/${id}/accessible-databases`)
+}
+
+export function listDatasourceDatabases(id: number): Promise<ApiResult<string[]>> {
+  return request.get(`/datasource/${id}/databases`)
+}
+
+export function listDatasourceTables(id: number, database?: string): Promise<ApiResult<any[]>> {
+  const params = database ? { database } : {}
+  return request.get(`/datasource/${id}/tables`, { params })
+}
+
+export function getDatasourceTableColumns(id: number, tableName: string, database?: string): Promise<ApiResult<any[]>> {
+  const params = database ? { database } : {}
+  return request.get(`/datasource/${id}/tables/${tableName}/columns`, { params })
+}
+
+export function getTableDdl(id: number, tableName: string, database?: string): Promise<ApiResult<string>> {
+  const params = database ? { database } : {}
+  return request.get(`/datasource/${id}/tables/${tableName}/ddl`, { params })
+}
+
+export function getTableComment(id: number, tableName: string, database?: string): Promise<ApiResult<string>> {
+  const params = database ? { database } : {}
+  return request.get(`/datasource/${id}/tables/${tableName}/comment`, { params })
+}

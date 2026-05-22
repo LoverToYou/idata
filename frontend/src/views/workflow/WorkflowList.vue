@@ -3,23 +3,23 @@
     <el-card shadow="hover">
       <template #header>
         <div class="card-header">
-          <span>ETL 任务列表</span>
+          <span>工作流任务列表</span>
           <div class="header-actions">
             <el-input
               v-model="searchName"
-              placeholder="搜索 ETL 任务名称"
+              placeholder="搜索工作流任务名称"
               clearable
               style="width: 220px"
               @input="fetchData"
             />
             <el-button type="primary" @click="$router.push('/workflow/create')">
-              <el-icon><Plus /></el-icon> 新建 ETL 任务
+              <el-icon><Plus /></el-icon> 新建任务
             </el-button>
           </div>
         </div>
       </template>
 
-      <el-table :data="filteredList" stripe v-loading="loading" empty-text="暂无 ETL 任务">
+      <el-table :data="filteredList" stripe v-loading="loading" empty-text="暂无工作流任务">
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="name" label="名称" min-width="160">
           <template #default="{ row }">

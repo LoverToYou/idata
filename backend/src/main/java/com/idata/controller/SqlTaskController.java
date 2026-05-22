@@ -49,4 +49,9 @@ public class SqlTaskController {
     public Result<SqlTaskVO> publish(@PathVariable Long id) {
         return Result.success(sqlTaskService.publish(id));
     }
+
+    @PostMapping("/{id}/unpublish")
+    public Result<SqlTaskVO> unpublish(@PathVariable Long id) {
+        return Result.success(sqlTaskService.unpublish(id));
+    }
 }

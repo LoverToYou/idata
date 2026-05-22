@@ -164,29 +164,83 @@
     <el-dialog
       v-model="logsVisible"
       title="节点执行日志"
-      width="800px"
+      width="820px"
+      top="4vh"
       :close-on-click-modal="false"
     >
       <template v-if="nodeLogs.length > 0">
+        <div class="node-logs-summary">
+          <el-tag size="small" type="success" effect="plain">
+            {{ nodeLogs.filter(l => l.status === 'SUCCESS').length }} 成功
+          </el-tag>
+          <el-tag size="small" type="danger" effect="plain">
+            {{ nodeLogs.filter(l => l.status === 'FAILED').length }} 失败
+          </el-tag>
+          <el-tag size="small" type="warning" effect="plain">
+            {{ nodeLogs.filter(l => l.status === 'RUNNING').length }} 运行中
+          </el-tag>
+          <el-tag size="small" type="info" effect="plain">
+            {{ nodeLogs.filter(l => l.status === 'WAITING').length }} 等待
+          </el-tag>
+        </div>
         <el-timeline>
           <el-timeline-item
             v-for="log in nodeLogs"
             :key="log.nodeId"
-            :timestamp="log.startTime ? formatTime(log.startTime) : ''"
-            :type="log.status === 'SUCCESS' ? 'success' : log.status === 'FAILED' ? 'danger' : 'warning'"
+            :timestamp="log.startedAt ? formatTime(log.startedAt) : '等待中'"
+            :type="log.status === 'SUCCESS' ? 'success' : log.status === 'FAILED' ? 'danger' : 'info'"
+            placement="top"
           >
-            <div class="log-node-header">
-              <span class="log-node-name">{{ log.nodeName || log.nodeId }}</span>
-              <el-tag size="small" :type="log.status === 'SUCCESS' ? 'success' : log.status === 'FAILED' ? 'danger' : 'warning'" effect="light">
-                {{ statusLabel(log.status) }}
-              </el-tag>
-            </div>
-            <div v-if="log.nodeType" class="log-node-type">
-              类型: {{ log.nodeType }}
-            </div>
-            <div v-if="log.logContent" class="log-content-wrapper">
-              <pre class="log-content">{{ log.logContent }}</pre>
-            </div>
+            <el-card shadow="never" class="node-log-card" :class="'status-' + (log.status || '').toLowerCase()">
+              <div class="log-node-header">
+                <span class="log-node-name">{{ log.nodeName || log.nodeId }}</span>
+                <el-tag size="small" :type="log.status === 'SUCCESS' ? 'success' : log.status === 'FAILED' ? 'danger' : log.status === 'RUNNING' ? 'warning' : 'info'" effect="dark">
+                  {{ statusLabel(log.status) }}
+                </el-tag>
+              </div>
+
+              <el-descriptions :column="2" size="small" border class="log-descriptions">
+                <el-descriptions-item label="节点 ID" :span="1">
+                  <code class="node-id-code">{{ log.nodeId }}</code>
+                </el-descriptions-item>
+                <el-descriptions-item label="耗时" :span="1">
+                  <span :class="calcNodeDurationClass(log)">{{ calcNodeDuration(log) }}</span>
+                </el-descriptions-item>
+                <el-descriptions-item label="开始时间" :span="1">
+                  {{ log.startedAt ? formatTime(log.startedAt) : '-' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="结束时间" :span="1">
+                  {{ log.finishedAt ? formatTime(log.finishedAt) : (log.status === 'RUNNING' ? '运行中...' : '-') }}
+                </el-descriptions-item>
+                <el-descriptions-item v-if="log.dataxPid" label="DataX PID" :span="1">
+                  <code>{{ log.dataxPid }}</code>
+                </el-descriptions-item>
+                <el-descriptions-item v-if="log.logPath" label="日志路径" :span="1">
+                  <code class="log-path">{{ log.logPath }}</code>
+                </el-descriptions-item>
+              </el-descriptions>
+
+              <div v-if="log.errorMessage" class="log-error-section">
+                <div class="log-error-label">错误信息</div>
+                <pre class="log-error-content">{{ log.errorMessage }}</pre>
+              </div>
+
+              <div v-if="log.dataxJson" class="log-collapsible">
+                <div class="log-collapse-toggle" @click="toggleDataxJson(log)">
+                  <span class="log-collapse-arrow">{{ log._showDataxJson ? '▼' : '▶' }}</span>
+                  <span class="log-collapse-label">DataX 配置 JSON</span>
+                </div>
+                <pre v-show="log._showDataxJson" class="log-datax-json">{{ log.dataxJson }}</pre>
+              </div>
+
+              <div v-if="log.outputLog" class="log-collapsible">
+                <div class="log-collapse-toggle" @click="toggleOutputLog(log)">
+                  <span class="log-collapse-arrow">{{ log._showOutputLog ? '▼' : '▶' }}</span>
+                  <span class="log-collapse-label">执行输出</span>
+                </div>
+                <pre v-show="log._showOutputLog" class="log-output-content">{{ log.outputLog }}</pre>
+              </div>
+            </el-card>
           </el-timeline-item>
         </el-timeline>
       </template>
@@ -428,6 +482,36 @@ function formatDuration(ms: number): string {
   return `${hours}h ${remainMin}m ${remainSec}s`
 }
 
+function calcNodeDuration(log: InstanceNodeLog): string {
+  if (!log.startedAt) return '-'
+  if (log.status === 'WAITING') return '未开始'
+  const start = new Date(log.startedAt).getTime()
+  if (log.status === 'RUNNING' || !log.finishedAt) return '运行中...'
+  const end = new Date(log.finishedAt).getTime()
+  const diff = end - start
+  if (diff < 0) return '-'
+  return formatDuration(diff)
+}
+
+function calcNodeDurationClass(log: InstanceNodeLog): string {
+  const d = calcNodeDuration(log)
+  if (d === '未开始' || d === '运行中...' || d === '-') return ''
+  // Highlight long-running nodes (>1s)
+  const ms = parseInt(d)
+  if (!isNaN(ms) && ms > 1000) return 'duration-long'
+  // Check formatted durations
+  if (d.includes('m') || d.includes('h')) return 'duration-long'
+  return 'duration-short'
+}
+
+function toggleDataxJson(log: InstanceNodeLog & { _showDataxJson?: boolean }) {
+  log._showDataxJson = !log._showDataxJson
+}
+
+function toggleOutputLog(log: InstanceNodeLog & { _showOutputLog?: boolean }) {
+  log._showOutputLog = !log._showOutputLog
+}
+
 // --- Lifecycle ---
 onMounted(() => {
   fetchData()
@@ -514,40 +598,170 @@ onUnmounted(() => {
 }
 
 /* Log dialogs */
+.node-logs-summary {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.node-log-card {
+  border-left: 3px solid #e4e7ed;
+  border-radius: 4px;
+}
+
+.node-log-card.status-success {
+  border-left-color: #67c23a;
+}
+
+.node-log-card.status-failed {
+  border-left-color: #f56c6c;
+}
+
+.node-log-card.status-running {
+  border-left-color: #e6a23c;
+}
+
+.node-log-card.status-waiting {
+  border-left-color: #909399;
+}
+
+.node-log-card :deep(.el-card__body) {
+  padding: 12px;
+}
+
 .log-node-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
 .log-node-name {
   font-weight: 600;
+  font-size: 14px;
   color: #303133;
 }
 
-.log-node-type {
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 4px;
+.log-descriptions {
+  margin-top: 0;
 }
 
-.log-content-wrapper {
-  margin-top: 6px;
+.log-descriptions :deep(.el-descriptions__label) {
+  width: 90px;
+  color: #909399;
+  font-weight: 500;
+}
+
+.node-id-code {
+  font-size: 12px;
+  color: #909399;
+}
+
+.log-path {
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.duration-short {
+  color: #67c23a;
+  font-weight: 500;
+}
+
+.duration-long {
+  color: #e6a23c;
+  font-weight: 500;
+}
+
+/* Collapsible sections for DataX JSON and execution output */
+.log-collapsible {
+  margin-top: 8px;
+}
+
+.log-collapse-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #f5f7fa;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.log-collapse-toggle:hover {
+  background: #e4e7ed;
+}
+
+.log-collapse-arrow {
+  font-size: 10px;
+  color: #909399;
+  flex-shrink: 0;
+}
+
+.log-collapse-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #606266;
+}
+
+.log-datax-json {
+  margin: 0;
+  margin-top: 4px;
+  padding: 10px 12px;
   background: #1e1e1e;
   border-radius: 4px;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #d4d4d4;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 400px;
+  overflow: auto;
+}
+
+.log-output-content {
+  margin: 0;
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: #fdf6ec;
+  border: 1px solid #faecd8;
+  border-radius: 4px;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #606266;
+  white-space: pre-wrap;
+  word-break: break-all;
   max-height: 300px;
   overflow: auto;
 }
 
-.log-content {
+.log-error-section {
+  margin-top: 10px;
+}
+
+.log-error-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #f56c6c;
+  margin-bottom: 4px;
+}
+
+.log-error-content {
   margin: 0;
-  padding: 12px;
+  padding: 10px 12px;
+  background: #fef0f0;
+  border: 1px solid #fde2e2;
+  border-radius: 4px;
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: #d4d4d4;
+  color: #f56c6c;
   white-space: pre-wrap;
   word-break: break-all;
+  max-height: 200px;
+  overflow: auto;
 }
 </style>

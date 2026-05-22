@@ -38,6 +38,7 @@ public class WorkflowService {
         def.setName(req.getName());
         def.setDescription(req.getDescription());
         def.setDagJson(req.getDagJson() != null ? req.getDagJson() : "{}");
+        def.setEtlType(req.getEtlType() != null ? req.getEtlType() : "DATAX");
         def.setStatus("DRAFT");
         workflowDefinitionMapper.insert(def);
         return toDetailVO(def);
@@ -51,6 +52,7 @@ public class WorkflowService {
         def.setName(req.getName());
         def.setDescription(req.getDescription());
         def.setDagJson(req.getDagJson());
+        def.setEtlType(req.getEtlType());
         workflowDefinitionMapper.updateById(def);
         return toDetailVO(workflowDefinitionMapper.selectById(req.getId()));
     }
@@ -88,6 +90,7 @@ public class WorkflowService {
         vo.setName(def.getName());
         vo.setDescription(def.getDescription());
         vo.setStatus(def.getStatus());
+        vo.setEtlType(def.getEtlType());
         vo.setCreatedAt(def.getCreatedAt());
         vo.setUpdatedAt(def.getUpdatedAt());
         return vo;
@@ -100,6 +103,7 @@ public class WorkflowService {
         vo.setDescription(def.getDescription());
         vo.setDagJson(def.getDagJson());
         vo.setStatus(def.getStatus());
+        vo.setEtlType(def.getEtlType());
         vo.setCreatedAt(def.getCreatedAt());
         vo.setUpdatedAt(def.getUpdatedAt());
         return vo;

@@ -6,6 +6,7 @@ import com.idata.dto.DatasourceRequest;
 import com.idata.dto.DatasourceVO;
 import com.idata.service.datasource.DatasourceService;
 import com.idata.service.datasource.HiveMetaService;
+import com.idata.service.datasource.JdbcMetaService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,10 +19,14 @@ public class DatasourceController {
 
     private final DatasourceService datasourceService;
     private final HiveMetaService hiveMetaService;
+    private final JdbcMetaService jdbcMetaService;
 
-    public DatasourceController(DatasourceService datasourceService, HiveMetaService hiveMetaService) {
+    public DatasourceController(DatasourceService datasourceService,
+                                HiveMetaService hiveMetaService,
+                                JdbcMetaService jdbcMetaService) {
         this.datasourceService = datasourceService;
         this.hiveMetaService = hiveMetaService;
+        this.jdbcMetaService = jdbcMetaService;
     }
 
     @GetMapping("/list")
@@ -84,5 +89,47 @@ public class DatasourceController {
     public Result<List<Map<String, String>>> hivePartitions(
             @PathVariable Long id, @PathVariable String database, @PathVariable String tableName) {
         return Result.success(hiveMetaService.listPartitions(id, database, tableName));
+    }
+
+    // --- Generic JDBC metadata endpoints ---
+
+    @GetMapping("/{id}/accessible-databases")
+    public Result<List<String>> listAccessibleDatabases(@PathVariable Long id) {
+        return Result.success(jdbcMetaService.listAccessibleDatabases(id));
+    }
+
+    @GetMapping("/{id}/databases")
+    public Result<List<String>> listDatabases(@PathVariable Long id) {
+        return Result.success(jdbcMetaService.listDatabases(id));
+    }
+
+    @GetMapping("/{id}/tables")
+    public Result<List<Map<String, String>>> listTables(@PathVariable Long id,
+                                                        @RequestParam(required = false) String database) {
+        return Result.success(jdbcMetaService.listTables(id, database));
+    }
+
+    @GetMapping("/{id}/tables/{tableName}/columns")
+    public Result<List<Map<String, String>>> listColumns(
+            @PathVariable Long id,
+            @PathVariable String tableName,
+            @RequestParam(required = false) String database) {
+        return Result.success(jdbcMetaService.listColumns(id, tableName, database));
+    }
+
+    @GetMapping("/{id}/tables/{tableName}/ddl")
+    public Result<String> getTableDdl(
+            @PathVariable Long id,
+            @PathVariable String tableName,
+            @RequestParam(required = false) String database) {
+        return Result.success(jdbcMetaService.getTableDdl(id, tableName, database));
+    }
+
+    @GetMapping("/{id}/tables/{tableName}/comment")
+    public Result<String> getTableComment(
+            @PathVariable Long id,
+            @PathVariable String tableName,
+            @RequestParam(required = false) String database) {
+        return Result.success(jdbcMetaService.getTableComment(id, tableName, database));
     }
 }

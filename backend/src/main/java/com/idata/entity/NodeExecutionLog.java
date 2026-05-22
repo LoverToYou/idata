@@ -27,6 +27,10 @@ public class NodeExecutionLog {
 
     private String logPath;
 
+    private String dataxJson;
+
+    private String outputLog;
+
     private String errorMessage;
 
     @TableField(fill = FieldFill.INSERT)

@@ -2,6 +2,8 @@ server:
   port: 8088
   servlet:
     context-path: /api
+  tomcat:
+    max-http-form-post-size: 20MB
 
 spring:
   application:
@@ -32,6 +34,11 @@ springdoc:
     path: /swagger-ui.html
 
 # DataX 安装路径配置
+logging:
+  level:
+    com.mysql.cj.jdbc: DEBUG
+    com.mysql.cj: TRACE
+
 idata:
   datax:
     home: /opt/datax

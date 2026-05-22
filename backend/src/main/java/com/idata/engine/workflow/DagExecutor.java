@@ -7,6 +7,12 @@ import com.idata.entity.WorkflowDefinition;
 import com.idata.entity.WorkflowInstance;
 import com.idata.mapper.NodeExecutionLogMapper;
 import com.idata.mapper.WorkflowDefinitionMapper;
+import com.idata.engine.datax.DataXRunner;
+import com.idata.dto.DataxTaskVO;
+import com.idata.service.datax.DataxTaskService;
+import com.idata.service.sql.ParameterService;
+import com.idata.service.sql.SqlExecutorService;
+import com.idata.service.sql.SqlTaskService;
 import com.idata.service.workflow.WorkflowInstanceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,15 +34,30 @@ public class DagExecutor {
     private final WorkflowInstanceService workflowInstanceService;
     private final NodeExecutionLogMapper nodeExecutionLogMapper;
     private final ObjectMapper objectMapper;
+    private final SqlTaskService sqlTaskService;
+    private final ParameterService parameterService;
+    private final SqlExecutorService sqlExecutorService;
+    private final DataXRunner dataXRunner;
+    private final DataxTaskService dataxTaskService;
 
     public DagExecutor(WorkflowDefinitionMapper workflowDefinitionMapper,
                        WorkflowInstanceService workflowInstanceService,
                        NodeExecutionLogMapper nodeExecutionLogMapper,
-                       ObjectMapper objectMapper) {
+                       ObjectMapper objectMapper,
+                       SqlTaskService sqlTaskService,
+                       ParameterService parameterService,
+                       SqlExecutorService sqlExecutorService,
+                       DataXRunner dataXRunner,
+                       DataxTaskService dataxTaskService) {
         this.workflowDefinitionMapper = workflowDefinitionMapper;
         this.workflowInstanceService = workflowInstanceService;
         this.nodeExecutionLogMapper = nodeExecutionLogMapper;
         this.objectMapper = objectMapper;
+        this.sqlTaskService = sqlTaskService;
+        this.parameterService = parameterService;
+        this.sqlExecutorService = sqlExecutorService;
+        this.dataXRunner = dataXRunner;
+        this.dataxTaskService = dataxTaskService;
     }
 
     /**
@@ -66,10 +87,40 @@ public class DagExecutor {
             throw new IllegalArgumentException("工作流DAG定义解析失败: " + e.getMessage(), e);
         }
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> nodes = (List<Map<String, Object>>) dag.get("nodes");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> edges = (List<Map<String, Object>>) dag.get("edges");
+        // 2a. Support new config-mode format (GUI/script) — build synthetic DAG
+        String configMode = (String) dag.get("configMode");
+        List<Map<String, Object>> nodes;
+        List<Map<String, Object>> edges;
+
+        if (configMode != null) {
+            // New editor format: single synthetic node wrapping the DataX JSON
+            String dataxJson;
+            if ("script".equals(configMode)) {
+                dataxJson = (String) dag.get("script");
+            } else {
+                dataxJson = (String) dag.get("dataxJson");
+            }
+            if (dataxJson == null || dataxJson.isBlank()) {
+                dataxJson = "{}";
+            }
+            Map<String, Object> synNode = new LinkedHashMap<>();
+            synNode.put("id", "datax-1");
+            synNode.put("label", "DataX 任务");
+            synNode.put("type", "datax");
+            Map<String, Object> synConfig = new LinkedHashMap<>();
+            synConfig.put("dataxJson", dataxJson);
+            synNode.put("config", synConfig);
+            nodes = Collections.singletonList(synNode);
+            edges = Collections.emptyList();
+        } else {
+            // Legacy DAG format (nodes / edges)
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rawNodes = (List<Map<String, Object>>) dag.get("nodes");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rawEdges = (List<Map<String, Object>>) dag.get("edges");
+            nodes = rawNodes;
+            edges = rawEdges;
+        }
 
         if (nodes == null || nodes.isEmpty()) {
             throw new IllegalArgumentException("工作流没有节点: " + workflowId);
@@ -174,9 +225,7 @@ public class DagExecutor {
 
                     log.info("Executing node: {} ({}) in instance {}", nodeName, nodeId, instanceId);
 
-                    // TODO: In the future, dispatch to DataXRunner or other executors
-                    // based on nodeConfig.get("type") and nodeConfig.get("config")
-                    executeNode(nodeConfig, instanceId);
+                    executeNode(nodeConfig, nodeLog);
 
                     // Transition to SUCCESS
                     nodeLog.setStatus("SUCCESS");
@@ -215,12 +264,114 @@ public class DagExecutor {
     }
 
     /**
-     * Execute a single DAG node. For now this is a stub that simulates execution.
-     * In the future, this will dispatch to DataXRunner or other executors based on node type.
+     * Execute a single DAG node. Dispatches to the appropriate executor based on node type.
      */
-    private void executeNode(Map<String, Object> nodeConfig, Long instanceId) {
-        // Stub: simulate execution
-        // TODO: check node type and dispatch accordingly
-        log.debug("Simulating execution of node {} in instance {}", nodeConfig.get("id"), instanceId);
+    private void executeNode(Map<String, Object> nodeConfig, NodeExecutionLog nodeLog) {
+        String nodeType = (String) nodeConfig.get("type");
+        if (nodeType == null) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> config = (Map<String, Object>) nodeConfig.get("config");
+            if (config != null) {
+                nodeType = (String) config.get("type");
+            }
+        }
+
+        if ("sql_task".equals(nodeType)) {
+            executeSqlTaskNode(nodeConfig, nodeLog.getInstanceId());
+        } else if ("datax".equals(nodeType)) {
+            executeDataxNode(nodeConfig, nodeLog);
+        } else {
+            log.warn("Unknown node type '{}' for node {} in instance {}, skipping",
+                    nodeType, nodeConfig.get("id"), nodeLog.getInstanceId());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void executeDataxNode(Map<String, Object> nodeConfig, NodeExecutionLog nodeLog) {
+        Map<String, Object> config = (Map<String, Object>) nodeConfig.get("config");
+        if (config == null) {
+            throw new IllegalArgumentException("DataX 任务节点缺少 config: " + nodeConfig.get("id"));
+        }
+
+        Object dataxTaskIdObj = config.get("dataxTaskId");
+        if (dataxTaskIdObj == null) {
+            throw new IllegalArgumentException("DataX 任务节点缺少 dataxTaskId: " + nodeConfig.get("id"));
+        }
+
+        Long dataxTaskId;
+        if (dataxTaskIdObj instanceof Number) {
+            dataxTaskId = ((Number) dataxTaskIdObj).longValue();
+        } else {
+            dataxTaskId = Long.valueOf(dataxTaskIdObj.toString());
+        }
+
+        // 1. Load the DataX task and generate JSON config
+        DataxTaskVO task = dataxTaskService.getById(dataxTaskId);
+        log.info("Executing DataX task {} (id={}) in instance {}", task.getName(), dataxTaskId, nodeLog.getInstanceId());
+
+        String dataxJson = dataxTaskService.generateDataxJson(dataxTaskId);
+        nodeLog.setDataxJson(dataxJson);
+
+        // 2. Attempt to run DataX via DataXRunner
+        executeDataxRunner(dataxJson, nodeConfig, nodeLog);
+        log.info("DataX task {} completed", task.getName());
+    }
+
+    private void executeDataxRunner(String dataxJson, Map<String, Object> nodeConfig, NodeExecutionLog nodeLog) {
+        try {
+            var result = dataXRunner.execute(dataxJson);
+            String output = "退出码: " + result.getExitCode()
+                    + "\n\n===== 标准输出 =====\n" + result.getStdout()
+                    + "\n===== 标准错误 =====\n" + result.getStderr();
+            nodeLog.setOutputLog(output);
+
+            if (!result.isSuccess()) {
+                throw new RuntimeException("DataX 任务执行失败，退出码: " + result.getExitCode()
+                        + "，错误信息: " + (result.getStderr() != null ? result.getStderr().trim() : "无"));
+            }
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("I/O error")) {
+                log.warn("DataX runner unavailable for node {} in instance {}, skipping execution. Config generated.",
+                        nodeConfig.get("id"), nodeLog.getInstanceId());
+                nodeLog.setOutputLog("[DataX] 运行环境不可用，已生成配置文件但未执行同步\n\n===== 生成的 DataX 配置 =====\n" + dataxJson);
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void executeSqlTaskNode(Map<String, Object> nodeConfig, Long instanceId) {
+        Map<String, Object> config = (Map<String, Object>) nodeConfig.get("config");
+        if (config == null) {
+            throw new IllegalArgumentException("SQL 任务节点缺少 config: " + nodeConfig.get("id"));
+        }
+
+        Object sqlTaskIdObj = config.get("sqlTaskId");
+        if (sqlTaskIdObj == null) {
+            throw new IllegalArgumentException("SQL 任务节点缺少 sqlTaskId: " + nodeConfig.get("id"));
+        }
+
+        Long sqlTaskId;
+        if (sqlTaskIdObj instanceof Number) {
+            sqlTaskId = ((Number) sqlTaskIdObj).longValue();
+        } else {
+            sqlTaskId = Long.valueOf(sqlTaskIdObj.toString());
+        }
+
+        // Load the SQL task
+        var task = sqlTaskService.getById(sqlTaskId);
+
+        // Resolve parameters in the SQL content
+        String resolvedSql = parameterService.resolveParams(task.getSqlContent());
+        log.info("Executing SQL task {} (id={}) in instance {}: {}", task.getName(), sqlTaskId, instanceId, resolvedSql);
+
+        // Execute the SQL
+        var result = sqlExecutorService.execute(task.getDatasourceId(), resolvedSql);
+        if (result.getErrorMessage() != null) {
+            throw new RuntimeException("SQL 任务执行失败: " + result.getErrorMessage());
+        }
+        log.info("SQL task {} completed: {} rows affected, {}ms",
+                task.getName(), result.getAffectedRows(), result.getElapsedMs());
     }
 }

@@ -19,6 +19,8 @@ public class WorkflowDefinition {
 
     private String status; // DRAFT / PUBLISHED
 
+    private String etlType; // DATAX / ...
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

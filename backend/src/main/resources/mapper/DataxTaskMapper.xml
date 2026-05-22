@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.idata.mapper.DataxTaskMapper">
+
+    <resultMap id="BaseResultMap" type="com.idata.entity.DataxTask">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="reader_datasource_id" property="readerDatasourceId"/>
+        <result column="reader_database" property="readerDatabase"/>
+        <result column="reader_table" property="readerTable"/>
+        <result column="reader_columns" property="readerColumns"/>
+        <result column="reader_where" property="readerWhere"/>
+        <result column="writer_datasource_id" property="writerDatasourceId"/>
+        <result column="writer_database" property="writerDatabase"/>
+        <result column="writer_table" property="writerTable"/>
+        <result column="writer_columns" property="writerColumns"/>
+        <result column="write_mode" property="writeMode"/>
+        <result column="field_mappings" property="fieldMappings"/>
+        <result column="channel" property="channel"/>
+        <result column="split_pk" property="splitPk"/>
+        <result column="batch_size" property="batchSize"/>
+        <result column="encoding" property="encoding"/>
+        <result column="pre_sql" property="preSql"/>
+        <result column="post_sql" property="postSql"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        id, name, description,
+        reader_datasource_id, reader_database, reader_table, reader_columns, reader_where,
+        writer_datasource_id, writer_database, writer_table, writer_columns, write_mode,
+        field_mappings, channel, split_pk, batch_size, encoding, pre_sql, post_sql,
+        status, created_at, updated_at
+    </sql>
+
+</mapper>

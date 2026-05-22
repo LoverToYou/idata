@@ -37,6 +37,7 @@ export interface WorkflowDefinition {
   description: string
   dagJson: string
   status: 'DRAFT' | 'PUBLISHED'
+  etlType?: string
   createdAt: string
   updatedAt: string
 }
@@ -64,15 +65,60 @@ export interface ScheduleConfig {
 export interface InstanceNodeLog {
   nodeId: string
   nodeName: string
-  nodeType: string
-  status: 'RUNNING' | 'SUCCESS' | 'FAILED'
-  startTime: string
-  endTime: string
-  logContent: string
+  status: 'WAITING' | 'RUNNING' | 'SUCCESS' | 'FAILED'
+  startedAt: string
+  finishedAt: string | null
+  errorMessage: string | null
+  dataxPid: number | null
+  logPath: string | null
+  dataxJson: string | null
+  outputLog: string | null
+}
+
+export interface ColumnDefinition {
+  columnName: string
+  dataType: string
+  length: number | null
+  nullable: boolean
+  defaultValue: string | null
+  comment: string
+  primaryKey: boolean
+  autoIncrement: boolean
+}
+
+export interface PartitionItem {
+  partitionName: string
+  value: string
+}
+
+export interface PartitionColumn {
+  name: string
+  dataType: string
+}
+
+export interface PartitionConfig {
+  type: 'RANGE' | 'LIST' | 'HASH' | 'KEY' | 'HIVE'
+  column?: string
+  columns?: PartitionColumn[]
+  count?: number
+  partitions?: PartitionItem[]
+}
+
+export interface IndexDefinition {
+  indexName: string
+  indexType: 'INDEX' | 'UNIQUE' | 'FULLTEXT'
+  columns: string[]
 }
 
 export interface ApiResult<T> {
   code: number
   message: string
   data: T
+}
+
+export interface PageResult<T> {
+  data: T[]
+  total: number
+  page: number
+  pageSize: number
 }

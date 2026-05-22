@@ -21,6 +21,8 @@ public class SqlTask {
 
     private String sqlType;
 
+    private String createdBy;
+
     private String status;
 
     @TableField(fill = FieldFill.INSERT)

@@ -1,4 +1,5 @@
 <template>
+  <div class="sql-task-view">
   <Layout>
     <!-- List View -->
     <el-card v-if="mode === 'list'" shadow="hover">
@@ -14,11 +15,19 @@
       <el-table :data="tasks" stripe v-loading="loadingTasks" @row-dblclick="handleEditTask">
         <el-table-column type="index" label="#" width="60" />
         <el-table-column prop="name" label="任务名称" min-width="200" />
-        <el-table-column label="SQL 类型" width="120">
+        <el-table-column label="数据库类型" width="130">
           <template #default="{ row }">
-            <el-tag :type="getSqlTypeTagType(row.sqlType)" size="small" effect="plain">
-              {{ row.sqlType || 'OTHER' }}
+            <span
+              :class="['status-dot', row.datasourceConnected === true ? 'dot-on' : row.datasourceConnected === false ? 'dot-off' : 'dot-na']"
+            />
+            <el-tag :type="getDsTypeTagType(row.datasourceType)" size="small" effect="plain">
+              {{ row.datasourceType || '-' }}
             </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="任务类型" width="100">
+          <template #default="{ row }">
+            <el-tag size="small" effect="plain" type="info">{{ row.sqlType || '-' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100">
@@ -27,6 +36,12 @@
               {{ row.status === 'PUBLISHED' ? '已发布' : '草稿' }}
             </el-tag>
           </template>
+        </el-table-column>
+        <el-table-column label="创建人" width="120">
+          <template #default="{ row }">{{ row.createdBy || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="180">
+          <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
         </el-table-column>
         <el-table-column label="更新时间" width="180">
           <template #default="{ row }">{{ formatTime(row.updatedAt) }}</template>
@@ -41,6 +56,14 @@
               @click="handlePublishTable(row)"
             >
               发布
+            </el-button>
+            <el-button
+              v-if="row.status === 'PUBLISHED'"
+              size="small"
+              type="warning"
+              @click="handleUnpublishTable(row)"
+            >
+              下架
             </el-button>
             <el-button size="small" type="danger" @click="handleDeleteTask(row)">删除</el-button>
           </template>
@@ -65,11 +88,11 @@
             />
             <el-tag
               v-if="currentTask"
-              :type="getSqlTypeTagType(currentTask.sqlType)"
+              :type="getDsTypeTagType(currentTask.datasourceType)"
               size="small"
               effect="plain"
             >
-              {{ currentTask.sqlType || 'OTHER' }}
+              {{ currentTask.datasourceType || '-' }}
             </el-tag>
             <el-tag
               v-if="currentTask"
@@ -101,8 +124,18 @@
             >
               <el-icon><Upload /></el-icon> 发布
             </el-button>
+            <el-button
+              v-if="currentTask && currentTask.status === 'PUBLISHED'"
+              @click="handleUnpublish"
+              type="warning"
+            >
+              下架
+            </el-button>
             <el-button @click="handleSave" :loading="saving" type="primary">
               <el-icon><Check /></el-icon> 保存
+            </el-button>
+            <el-button @click="insertPromptTemplate">
+              插入提示词
             </el-button>
             <el-button @click="handleFormat" :loading="formatting">
               格式化
@@ -244,15 +277,51 @@
       </el-card>
     </div>
   </Layout>
+
+  <!-- Create Task Dialog -->
+  <el-dialog
+      v-model="createDialogVisible"
+      title="新建 SQL 任务"
+      width="480px"
+      :close-on-click-modal="false"
+      @closed="onCreateDialogClosed"
+    >
+      <el-form :model="newTaskForm" label-width="100px" :rules="createFormRules" ref="createFormRef">
+        <el-form-item label="任务名称" prop="name">
+          <el-input v-model="newTaskForm.name" placeholder="请输入任务名称" maxlength="100" />
+        </el-form-item>
+        <el-form-item label="数据库类型" prop="dbType">
+          <el-select v-model="newTaskForm.dbType" placeholder="请选择数据库类型" style="width: 100%" @change="onDbTypeChange">
+            <el-option label="MySQL" value="MYSQL" />
+            <el-option label="Hive" value="HIVE" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="数据源" prop="datasourceId">
+          <el-select v-model="newTaskForm.datasourceId" placeholder="请选择数据源" style="width: 100%" :disabled="!newTaskForm.dbType">
+            <el-option
+              v-for="ds in filteredDatasources"
+              :key="ds.id"
+              :label="`${ds.name} (${ds.host}:${ds.port}/${ds.databaseName})`"
+              :value="ds.id"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleCreateConfirm" :loading="creating">确认</el-button>
+      </template>
+    </el-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Layout from '@/components/common/Layout.vue'
 import { listDatasources } from '@/api/datasource'
 import { executeSql, explainSql, analyzeSql, fullAnalyze, formatSql } from '@/api/sql'
-import { listTasks, getTask, createTask, updateTask, deleteTask, publishTask } from '@/api/sql-task'
+import { listTasks, getTask, createTask, updateTask, deleteTask, publishTask, unpublishTask } from '@/api/sql-task'
 import type { DatasourceConfig } from '@/types'
 import type { SqlExecuteResult, ExplainPlanResult, SqlAnalysis, SqlSuggestion } from '@/api/sql'
 import * as monaco from 'monaco-editor'
@@ -261,6 +330,8 @@ import * as monaco from 'monaco-editor'
 const mode = ref<'list' | 'edit'>('list')
 
 function handleBackToList() {
+  editor?.dispose()
+  editor = null
   mode.value = 'list'
   currentTaskId.value = null
   currentTask.value = null
@@ -312,23 +383,93 @@ async function loadTaskDetail(id: number) {
   }
 }
 
+// --- Create Task Dialog ---
+const createDialogVisible = ref(false)
+const creating = ref(false)
+const createFormRef = ref<any>(null)
+const newTaskForm = reactive({
+  name: '',
+  dbType: '' as string,
+  datasourceId: undefined as number | undefined,
+})
+const createFormRules = {
+  name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
+  dbType: [{ required: true, message: '请选择数据库类型', trigger: 'change' }],
+  datasourceId: [{ required: true, message: '请选择数据源', trigger: 'change' }],
+}
+
+const filteredDatasources = computed(() => {
+  if (!newTaskForm.dbType) return []
+  return datasources.value.filter(ds => ds.type === newTaskForm.dbType)
+})
+
+function onDbTypeChange() {
+  newTaskForm.datasourceId = undefined
+}
+
+function onCreateDialogClosed() {
+  newTaskForm.name = ''
+  newTaskForm.dbType = ''
+  newTaskForm.datasourceId = undefined
+}
+
+function generateDefaultComment(dsType: string): string {
+  const now = new Date()
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  const timeStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+  return [
+    '*****************************',
+    '***创建时间: ' + timeStr,
+    '***创建人: ',
+    '***数据库类型: ' + dsType,
+    '*****************************',
+  ].join('\n')
+}
+
 function handleNewTask() {
-  mode.value = 'edit'
-  currentTaskId.value = null
-  currentTask.value = null
-  taskName.value = ''
-  ensureEditor()
-  nextTick(() => {
-    if (editor) {
-      editor.setValue('SELECT *\nFROM your_table\nWHERE 1=1\nLIMIT 100')
+  // Show create dialog instead of entering editor directly
+  createDialogVisible.value = true
+}
+
+async function handleCreateConfirm() {
+  const valid = await createFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  creating.value = true
+  try {
+    const defaultComment = generateDefaultComment(newTaskForm.dbType)
+    const payload = {
+      name: newTaskForm.name.trim(),
+      sqlContent: defaultComment,
+      datasourceId: newTaskForm.datasourceId!,
     }
-  })
-  selectedDatasource.value = datasources.value[0]?.id
-  executeResult.value = null
-  planResult.value = null
-  suggestions.value = []
-  analysis.value = null
-  analyzed.value = false
+    const res = await createTask(payload)
+    currentTaskId.value = res.data.id
+    currentTask.value = res.data
+    taskName.value = newTaskForm.name.trim()
+    selectedDatasource.value = newTaskForm.datasourceId!
+
+    createDialogVisible.value = false
+    mode.value = 'edit'
+    executeResult.value = null
+    planResult.value = null
+    suggestions.value = []
+    analysis.value = null
+    analyzed.value = false
+
+    ensureEditor()
+    nextTick(() => {
+      if (editor) {
+        editor.setValue(defaultComment)
+      }
+    })
+    await loadTasks()
+    ElMessage.success('任务已创建')
+  } catch (e: any) {
+    ElMessage.error(e.message || '创建失败')
+  } finally {
+    creating.value = false
+  }
 }
 
 async function handleSave() {
@@ -392,6 +533,15 @@ async function handlePublishTable(task: any) {
   } catch { /* cancelled */ }
 }
 
+async function handleUnpublishTable(task: any) {
+  try {
+    await ElMessageBox.confirm(`下架任务「${task.name}」？下架后该任务将不再被工作流调度执行。`, '下架确认')
+    await unpublishTask(task.id)
+    ElMessage.success('任务已下架')
+    await loadTasks()
+  } catch { /* cancelled */ }
+}
+
 // --- Datasource ---
 const datasources = ref<DatasourceConfig[]>([])
 const selectedDatasource = ref<number | undefined>()
@@ -449,7 +599,24 @@ function ensureEditor() {
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       handleExecute()
     })
+    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyP, () => {
+      insertPromptTemplate()
+    })
   })
+}
+
+function insertPromptTemplate() {
+  if (!editor) return
+  const dsType = currentTask.value?.datasourceType
+  const template = generateDefaultComment(dsType || '')
+  const selection = editor.getSelection()
+  const range = selection ? new monaco.Range(
+    selection.startLineNumber, selection.startColumn,
+    selection.endLineNumber, selection.endColumn
+  ) : null
+  editor.executeEdits('prompt-template', [
+    { range: range || new monaco.Range(1, 1, 1, 1), text: template, forceMoveMarkers: true },
+  ])
 }
 
 onBeforeUnmount(() => {
@@ -562,15 +729,10 @@ function getSuggestionTagType(type: string): string {
   }
 }
 
-function getSqlTypeTagType(sqlType: string): string {
-  switch (sqlType?.toUpperCase()) {
-    case 'SELECT': return 'success'
-    case 'INSERT': return 'primary'
-    case 'UPDATE': return 'warning'
-    case 'DELETE': return 'danger'
-    case 'CREATE':
-    case 'ALTER':
-    case 'DROP': return ''
+function getDsTypeTagType(type: string): string {
+  switch (type?.toUpperCase()) {
+    case 'MYSQL': return 'primary'
+    case 'HIVE': return 'warning'
     default: return 'info'
   }
 }
@@ -587,6 +749,21 @@ async function handlePublish() {
     await loadTasks()
     if (currentTask.value) {
       currentTask.value.status = 'PUBLISHED'
+    }
+  } catch { /* cancelled */ }
+}
+
+async function handleUnpublish() {
+  if (!currentTaskId.value) {
+    return
+  }
+  try {
+    await ElMessageBox.confirm('下架后该任务将不再被工作流调度执行，确定下架？', '下架确认')
+    await unpublishTask(currentTaskId.value)
+    ElMessage.success('任务已下架')
+    await loadTasks()
+    if (currentTask.value) {
+      currentTask.value.status = 'DRAFT'
     }
   } catch { /* cancelled */ }
 }
@@ -708,5 +885,25 @@ async function handlePublish() {
 .analysis-info {
   max-height: 300px;
   overflow-y: auto;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.dot-on {
+  background-color: #67c23a;
+  box-shadow: 0 0 4px #67c23a;
+}
+.dot-off {
+  background-color: #f56c6c;
+  box-shadow: 0 0 4px #f56c6c;
+}
+.dot-na {
+  background-color: #c0c4cc;
 }
 </style>

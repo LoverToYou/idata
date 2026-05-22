@@ -6,6 +6,7 @@ backend/target/
 
 # Node
 frontend/node_modules/
+node_modules/
 frontend/dist/
 
 # IDE
@@ -29,3 +30,12 @@ frontend/dist/
 # Test artifacts
 home-page
 workflow-list
+snapshot.txt
+table-manager.png
+workflow-arrow-test.png
+project-status-snapshot
+
+# Generated cache
+backend/.vite/
+frontend/test-results/
+.claude/
