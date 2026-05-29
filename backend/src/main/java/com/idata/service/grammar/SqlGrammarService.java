@@ -1,6 +1,7 @@
 package com.idata.service.grammar;
 
 import com.idata.dto.SqlGrammarContext;
+import com.idata.dto.SqlKeywordVO;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -15,7 +16,7 @@ public class SqlGrammarService {
     // ---- 关键字定义 ----
 
     /** 语句起始关键字 */
-    private static final Set<String> STATEMENT_KEYWORDS = Set.of(
+    private static final List<String> STATEMENT_KEYWORDS = List.of(
             "SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "DROP",
             "TRUNCATE", "WITH", "EXPLAIN", "SHOW", "DESCRIBE", "USE", "SET", "CALL"
     );
@@ -29,8 +30,8 @@ public class SqlGrammarService {
     /** 双元素关键字 → 下一个状态 */
     private static final Map<String, SqlGrammarState> MULTI_KEYWORD_TRANSITION = new HashMap<>();
 
-    /** 每个状态允许的关键字 */
-    private static final Map<SqlGrammarState, Set<String>> VALID_KEYWORDS = new HashMap<>();
+    /** 每个状态允许的关键字（按语法优先级排列，下标越小越优先） */
+    private static final Map<SqlGrammarState, List<String>> VALID_KEYWORDS = new HashMap<>();
 
     /** 每个状态的期望类型标志 */
     private static final Map<SqlGrammarState, StateFlags> STATE_FLAGS = new HashMap<>();
@@ -92,67 +93,98 @@ public class SqlGrammarService {
         // ---- 每个状态的有效关键字 ----
         VALID_KEYWORDS.put(SqlGrammarState.STATEMENT_START, STATEMENT_KEYWORDS);
 
-        VALID_KEYWORDS.put(SqlGrammarState.SELECT_LIST, Set.of(
-                "FROM", "WHERE", "AS", "JOIN", "LEFT JOIN", "RIGHT JOIN",
-                "INNER JOIN", "CROSS JOIN", "NATURAL JOIN", "GROUP BY", "ORDER BY",
-                "LIMIT", "UNION", "UNION ALL", "DISTINCT", "CASE", "WHEN", "THEN",
-                "ELSE", "END"
+        VALID_KEYWORDS.put(SqlGrammarState.SELECT_LIST, List.of(
+                // ── 必选子句 ──
+                "FROM",
+                // ── 可选子句 ──
+                "WHERE", "GROUP BY", "HAVING", "ORDER BY", "LIMIT",
+                // ── 组合查询 ──
+                "UNION", "UNION ALL",
+                // ── 表连接 ──
+                "JOIN", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN",
+                "CROSS JOIN", "NATURAL JOIN",
+                // ── 其他修饰符 ──
+                "INTO", "DISTINCT", "AS",
+                // ── 表达式关键字 ──
+                "CASE", "WHEN", "THEN", "ELSE", "END"
         ));
 
-        VALID_KEYWORDS.put(SqlGrammarState.FROM_CLAUSE, Set.of(
-                "WHERE", "JOIN", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN",
-                "CROSS JOIN", "NATURAL JOIN", "ON", "SET", "GROUP BY", "ORDER BY",
-                "LIMIT", "AS"
+        VALID_KEYWORDS.put(SqlGrammarState.FROM_CLAUSE, List.of(
+                // ── 表连接 ──
+                "JOIN", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN",
+                "CROSS JOIN", "NATURAL JOIN",
+                // ── 连接条件 ──
+                "ON",
+                // ── 可选子句 ──
+                "WHERE", "GROUP BY", "ORDER BY", "LIMIT",
+                // ── 别名及其他 ──
+                "AS", "SET"
         ));
 
-        VALID_KEYWORDS.put(SqlGrammarState.JOIN_CLAUSE, Set.of(
+        VALID_KEYWORDS.put(SqlGrammarState.JOIN_CLAUSE, List.of(
                 "ON", "AS", "WHERE"
         ));
 
-        VALID_KEYWORDS.put(SqlGrammarState.ON_CLAUSE, Set.of(
-                "AND", "OR", "WHERE", "IS", "NOT", "NULL", "LIKE", "IN",
-                "BETWEEN", "EXISTS", "JOIN", "LEFT JOIN", "RIGHT JOIN"
+        VALID_KEYWORDS.put(SqlGrammarState.ON_CLAUSE, List.of(
+                // ── 逻辑运算 ──
+                "AND", "OR",
+                // ── 比较/条件 ──
+                "IS", "NOT", "NULL", "LIKE", "IN", "BETWEEN", "EXISTS",
+                // ── 更多连接 ──
+                "JOIN", "LEFT JOIN", "RIGHT JOIN",
+                // ── 可选子句 ──
+                "WHERE"
         ));
 
-        VALID_KEYWORDS.put(SqlGrammarState.WHERE_CLAUSE, Set.of(
-                "AND", "OR", "GROUP BY", "ORDER BY", "LIMIT", "IS", "NOT",
-                "NULL", "LIKE", "IN", "BETWEEN", "EXISTS", "JOIN",
-                "LEFT JOIN", "RIGHT JOIN"
+        VALID_KEYWORDS.put(SqlGrammarState.WHERE_CLAUSE, List.of(
+                // ── 逻辑运算 ──
+                "AND", "OR",
+                // ── 可选子句 ──
+                "GROUP BY", "ORDER BY", "LIMIT",
+                // ── 比较/条件 ──
+                "IS", "NOT", "NULL", "LIKE", "IN", "BETWEEN", "EXISTS",
+                // ── 表连接 ──
+                "JOIN", "LEFT JOIN", "RIGHT JOIN"
         ));
 
-        VALID_KEYWORDS.put(SqlGrammarState.GROUP_BY_CLAUSE, Set.of(
-                "ASC", "DESC", "HAVING", "ORDER BY", "LIMIT"
+        VALID_KEYWORDS.put(SqlGrammarState.GROUP_BY_CLAUSE, List.of(
+                "HAVING", "ORDER BY", "LIMIT", "ASC", "DESC"
         ));
 
-        VALID_KEYWORDS.put(SqlGrammarState.HAVING_CLAUSE, Set.of(
-                "AND", "OR", "ORDER BY", "LIMIT", "IS", "NOT", "NULL",
-                "LIKE", "IN", "BETWEEN", "EXISTS"
+        VALID_KEYWORDS.put(SqlGrammarState.HAVING_CLAUSE, List.of(
+                "AND", "OR", "ORDER BY", "LIMIT",
+                "IS", "NOT", "NULL", "LIKE", "IN", "BETWEEN", "EXISTS"
         ));
 
-        VALID_KEYWORDS.put(SqlGrammarState.ORDER_BY_CLAUSE, Set.of(
-                "ASC", "DESC", "LIMIT"
+        VALID_KEYWORDS.put(SqlGrammarState.ORDER_BY_CLAUSE, List.of(
+                "LIMIT", "ASC", "DESC"
         ));
 
-        VALID_KEYWORDS.put(SqlGrammarState.LIMIT_CLAUSE, Set.of("OFFSET"));
+        VALID_KEYWORDS.put(SqlGrammarState.LIMIT_CLAUSE, List.of("OFFSET"));
 
-        VALID_KEYWORDS.put(SqlGrammarState.SET_CLAUSE, Set.of("WHERE"));
+        VALID_KEYWORDS.put(SqlGrammarState.SET_CLAUSE, List.of("WHERE"));
 
-        VALID_KEYWORDS.put(SqlGrammarState.INTO_CLAUSE, Set.of("VALUES", "SELECT"));
+        VALID_KEYWORDS.put(SqlGrammarState.INTO_CLAUSE, List.of("VALUES", "SELECT"));
 
-        VALID_KEYWORDS.put(SqlGrammarState.VALUES_CLAUSE, Collections.emptySet());
+        VALID_KEYWORDS.put(SqlGrammarState.VALUES_CLAUSE, Collections.emptyList());
 
-        VALID_KEYWORDS.put(SqlGrammarState.TABLE_DEF, Collections.emptySet());
+        VALID_KEYWORDS.put(SqlGrammarState.TABLE_DEF, Collections.emptyList());
 
-        VALID_KEYWORDS.put(SqlGrammarState.AFTER_DOT, Collections.emptySet());
+        VALID_KEYWORDS.put(SqlGrammarState.AFTER_DOT, Collections.emptyList());
 
-        VALID_KEYWORDS.put(SqlGrammarState.INSIDE_FUNCTION, Set.of(
+        VALID_KEYWORDS.put(SqlGrammarState.INSIDE_FUNCTION, List.of(
                 "AND", "OR", "CASE", "WHEN", "THEN", "ELSE", "END"
         ));
 
-        VALID_KEYWORDS.put(SqlGrammarState.EXPRESSION, Set.of(
-                "AND", "OR", "IS", "NOT", "NULL", "LIKE", "IN",
-                "BETWEEN", "EXISTS", "CASE", "WHEN", "THEN", "ELSE", "END",
-                "WHERE", "SET", "ORDER BY", "LIMIT"
+        VALID_KEYWORDS.put(SqlGrammarState.EXPRESSION, List.of(
+                // ── 子句级关键字（最优先） ──
+                "WHERE", "ORDER BY", "LIMIT", "SET",
+                // ── 逻辑运算 ──
+                "AND", "OR",
+                // ── 比较/条件 ──
+                "IS", "NOT", "NULL", "LIKE", "IN", "BETWEEN", "EXISTS",
+                // ── 表达式关键字 ──
+                "CASE", "WHEN", "THEN", "ELSE", "END"
         ));
 
         VALID_KEYWORDS.put(SqlGrammarState.UNKNOWN, STATEMENT_KEYWORDS);
@@ -572,7 +604,7 @@ public class SqlGrammarService {
 
     private boolean isFunctionKeyword(String keyword) {
         // 常见的函数名
-        return Set.of("COUNT", "SUM", "AVG", "MAX", "MIN", "NOW", "CONCAT",
+        return List.of("COUNT", "SUM", "AVG", "MAX", "MIN", "NOW", "CONCAT",
                 "COALESCE", "IFNULL", "CAST", "DATE_FORMAT", "SUBSTRING",
                 "REPLACE", "LENGTH", "UPPER", "LOWER", "TRIM", "IF",
                 "GROUP_CONCAT", "UNIX_TIMESTAMP", "FROM_UNIXTIME",
@@ -627,6 +659,158 @@ public class SqlGrammarService {
                 || "TABLE".equals(upper);
     }
 
+    // ---- SQL 模板 ----
+
+    private static final Map<String, SqlKeywordVO> KEYWORDS = new LinkedHashMap<>();
+
+    static {
+        // ========== MySQL 关键词 ==========
+        SqlKeywordVO mysql = new SqlKeywordVO();
+        mysql.setStatements(List.of(
+                "SELECT", "INSERT", "UPDATE", "DELETE", "REPLACE", "CREATE TABLE", "CREATE DATABASE",
+                "CREATE INDEX", "ALTER TABLE", "ALTER DATABASE", "DROP TABLE", "DROP DATABASE",
+                "DROP INDEX", "TRUNCATE TABLE", "SHOW TABLES", "SHOW DATABASES", "SHOW CREATE TABLE",
+                "SHOW INDEX", "SHOW PROCESSLIST", "SHOW VARIABLES", "SHOW STATUS", "DESCRIBE",
+                "EXPLAIN", "SET", "CALL", "LOCK TABLES", "UNLOCK TABLES", "WITH"
+        ));
+        mysql.setFunctions(List.of(
+                "COUNT()", "SUM()", "AVG()", "MIN()", "MAX()", "GROUP_CONCAT()",
+                "NOW()", "CURDATE()", "CURTIME()", "DATE_FORMAT()", "STR_TO_DATE()",
+                "DATE_ADD()", "DATE_SUB()", "DATEDIFF()", "UNIX_TIMESTAMP()", "FROM_UNIXTIME()",
+                "CONCAT()", "CONCAT_WS()", "SUBSTRING()", "SUBSTRING_INDEX()",
+                "REPLACE()", "TRIM()", "UPPER()", "LOWER()", "LENGTH()", "CHAR_LENGTH()",
+                "LOCATE()", "LEFT()", "RIGHT()", "LPAD()", "RPAD()", "REVERSE()",
+                "COALESCE()", "IFNULL()", "NULLIF()", "IF()", "CASE",
+                "CAST()", "CONVERT()",
+                "ROUND()", "CEIL()", "FLOOR()", "ABS()", "MOD()", "POWER()", "SQRT()", "RAND()",
+                "JSON_EXTRACT()", "JSON_UNQUOTE()", "JSON_KEYS()",
+                "DATABASE()", "USER()", "VERSION()", "LAST_INSERT_ID()", "FOUND_ROWS()",
+                "ROW_NUMBER()", "RANK()", "DENSE_RANK()", "LEAD()", "LAG()"
+        ));
+        mysql.setTypes(List.of(
+                "TINYINT", "SMALLINT", "MEDIUMINT", "INT", "INTEGER", "BIGINT",
+                "FLOAT", "DOUBLE", "DECIMAL(10,2)", "NUMERIC",
+                "CHAR", "VARCHAR(255)", "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT",
+                "BINARY", "VARBINARY", "TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB",
+                "DATE", "DATETIME", "TIMESTAMP", "TIME", "YEAR",
+                "BOOLEAN", "TINYINT(1)",
+                "ENUM('')", "SET('')", "JSON", "GEOMETRY", "POINT"
+        ));
+        mysql.setClauses(List.of(
+                "FROM", "WHERE", "INTO", "VALUES",
+                "AUTO_INCREMENT", "ENGINE = InnoDB", "DEFAULT CHARSET = utf8mb4",
+                "COLLATE = utf8mb4_unicode_ci", "CHARACTER SET",
+                "UNSIGNED", "ZEROFILL", "CURRENT_TIMESTAMP",
+                "ON UPDATE CURRENT_TIMESTAMP", "ON DELETE CASCADE",
+                "ON DELETE SET NULL", "ON DELETE RESTRICT",
+                "NOT NULL", "DEFAULT", "PRIMARY KEY", "UNIQUE KEY", "FOREIGN KEY",
+                "REFERENCES", "INDEX", "KEY", "FULLTEXT", "SPATIAL",
+                "LOCK IN SHARE MODE", "FOR UPDATE",
+                "GROUP BY", "ORDER BY", "ASC", "DESC",
+                "LIMIT", "OFFSET", "HAVING",
+                "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "CROSS JOIN", "NATURAL JOIN",
+                "OUTER JOIN", "LEFT OUTER JOIN", "RIGHT OUTER JOIN",
+                "UNION", "UNION ALL", "DISTINCT",
+                "IS NULL", "IS NOT NULL", "LIKE", "IN", "BETWEEN", "EXISTS",
+                "AND", "OR", "NOT", "AS", "ON",
+                "CASE WHEN", "THEN", "ELSE", "END",
+                "DELAYED", "HIGH_PRIORITY", "LOW_PRIORITY", "IGNORE",
+                "SQL_CALC_FOUND_ROWS", "SQL_NO_CACHE"
+        ));
+
+        // ========== Hive 关键词 ==========
+        SqlKeywordVO hive = new SqlKeywordVO();
+        hive.setStatements(List.of(
+                "SELECT", "INSERT OVERWRITE TABLE", "INSERT INTO TABLE",
+                "CREATE TABLE", "CREATE TABLE AS", "CREATE DATABASE",
+                "ALTER TABLE", "DROP TABLE", "DROP DATABASE",
+                "TRUNCATE TABLE", "SHOW TABLES", "SHOW DATABASES",
+                "SHOW PARTITIONS", "SHOW CREATE TABLE", "SHOW FUNCTIONS",
+                "DESCRIBE", "DESCRIBE EXTENDED", "DESCRIBE FORMATTED",
+                "MSCK REPAIR TABLE", "LOAD DATA INPATH", "EXPORT TABLE",
+                "IMPORT TABLE", "ANALYZE TABLE", "COMPUTE STATISTICS",
+                "EXPLAIN", "SET", "RESET", "ADD", "WITH"
+        ));
+        hive.setFunctions(List.of(
+                "COUNT()", "SUM()", "AVG()", "MIN()", "MAX()",
+                "COLLECT_LIST()", "COLLECT_SET()", "EXPLODE()", "POSEXPLODE()",
+                "GET_JSON_OBJECT()", "FROM_JSON()", "TO_JSON()",
+                "CONCAT()", "CONCAT_WS()", "SUBSTRING()", "SPLIT()",
+                "REGEXP_REPLACE()", "REGEXP_EXTRACT()", "PARSE_URL()",
+                "UPPER()", "LOWER()", "TRIM()", "LENGTH()", "REVERSE()",
+                "LPAD()", "RPAD()", "REPLACE()",
+                "CAST()", "IF()", "COALESCE()", "NVL()", "NULLIF()", "CASE",
+                "ROUND()", "FLOOR()", "CEIL()", "RAND()", "ABS()", "MOD()",
+                "POW()", "SQRT()", "EXP()", "LN()", "LOG()",
+                "DATEDIFF()", "DATE_ADD()", "DATE_SUB()",
+                "FROM_UNIXTIME()", "UNIX_TIMESTAMP()", "TO_DATE()",
+                "YEAR()", "MONTH()", "DAY()", "HOUR()", "MINUTE()", "SECOND()",
+                "CURRENT_DATE", "CURRENT_TIMESTAMP",
+                "ROW_NUMBER()", "RANK()", "DENSE_RANK()", "NTILE()",
+                "LEAD()", "LAG()", "FIRST_VALUE()", "LAST_VALUE()",
+                "CUME_DIST()", "PERCENT_RANK()",
+                "PERCENTILE()", "PERCENTILE_APPROX()",
+                "WIDTH_BUCKET()", "HISTOGRAM_NUMERIC()",
+                "SIZE()", "SORT_ARRAY()", "ARRAY_CONTAINS()",
+                "MAP_KEYS()", "MAP_VALUES()", "NAMED_STRUCT()"
+        ));
+        hive.setTypes(List.of(
+                "TINYINT", "SMALLINT", "INT", "INTEGER", "BIGINT",
+                "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC",
+                "STRING", "VARCHAR", "CHAR",
+                "BOOLEAN", "BINARY",
+                "TIMESTAMP", "DATE", "INTERVAL",
+                "ARRAY<STRING>", "MAP<STRING,STRING>",
+                "STRUCT<name:STRING,age:INT>",
+                "UNIONTYPE<INT,STRING>"
+        ));
+        hive.setClauses(List.of(
+                "FROM", "INTO", "VALUES",
+                "ROW FORMAT DELIMITED", "ROW FORMAT SERDE",
+                "FIELDS TERMINATED BY", "LINES TERMINATED BY",
+                "STORED AS TEXTFILE", "STORED AS PARQUET",
+                "STORED AS ORC", "STORED AS AVRO",
+                "STORED AS SEQUENCEFILE", "STORED AS RCFILE",
+                "INPUTFORMAT", "OUTPUTFORMAT",
+                "LOCATION '/user/hive/warehouse/'",
+                "TBLPROPERTIES ('skip.header.line.count'='1')",
+                "PARTITIONED BY", "CLUSTERED BY", "SORTED BY", "INTO BUCKETS",
+                "SKEWED BY", "STORED AS DIRECTORIES",
+                "WITH SERDEPROPERTIES",
+                "ESCAPED BY", "NULL DEFINED AS",
+                "COLLECTION ITEMS TERMINATED BY",
+                "MAP KEYS TERMINATED BY",
+                "COMMENT 'table comment'",
+                "IF NOT EXISTS", "OR REPLACE",
+                "LATERAL VIEW", "LATERAL VIEW OUTER",
+                "OVER (PARTITION BY)", "OVER (ORDER BY)",
+                "GROUP BY", "ORDER BY", "SORT BY", "DISTRIBUTE BY",
+                "CLUSTER BY", "ASC", "DESC",
+                "LIMIT", "HAVING", "WHERE",
+                "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "FULL OUTER JOIN",
+                "LEFT SEMI JOIN", "CROSS JOIN",
+                "UNION", "UNION ALL", "UNION DISTINCT",
+                "DISTINCT", "ALL",
+                "IS NULL", "IS NOT NULL", "LIKE", "RLIKE", "REGEXP",
+                "IN", "BETWEEN", "EXISTS", "NOT EXISTS",
+                "AND", "OR", "NOT", "AS", "ON",
+                "CASE WHEN", "THEN", "ELSE", "END",
+                "SET hive.exec.dynamic.partition=true",
+                "SET hive.exec.dynamic.partition.mode=nonstrict"
+        ));
+
+        KEYWORDS.put("MYSQL", mysql);
+        KEYWORDS.put("HIVE", hive);
+    }
+
+    /**
+     * 根据数据库类型获取 SQL 关键词提示数据。
+     */
+    public SqlKeywordVO getKeywords(String dbType) {
+        String type = (dbType == null || dbType.isBlank()) ? "MYSQL" : dbType.toUpperCase();
+        return KEYWORDS.getOrDefault(type, KEYWORDS.get("MYSQL"));
+    }
+
     /**
      * 创建基本上下文结果。
      */
@@ -642,10 +826,9 @@ public class SqlGrammarService {
         ctx.setExpectsFunction(flags.function());
         ctx.setExpectsValue(flags.value());
 
-        Set<String> keywords = VALID_KEYWORDS.getOrDefault(state, Collections.emptySet());
-        List<String> sortedKeywords = new ArrayList<>(keywords);
-        Collections.sort(sortedKeywords);
-        ctx.setValidKeywords(sortedKeywords);
+        List<String> keywords = VALID_KEYWORDS.getOrDefault(state, Collections.emptyList());
+        // 使用定义顺序作为优先级：List 下标越小（定义越靠前），优先级越高
+        ctx.setValidKeywords(new ArrayList<>(keywords));
 
         return ctx;
     }

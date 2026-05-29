@@ -1,6 +1,13 @@
 import request from './request'
 import type { ApiResult } from '@/types'
 
+export interface SqlKeywords {
+  statements: string[]
+  functions: string[]
+  types: string[]
+  clauses: string[]
+}
+
 export interface GrammarContext {
   state: string
   queryType: string
@@ -25,6 +32,10 @@ export function detectGrammarContext(
   cursorPosition: number,
 ): Promise<ApiResult<GrammarContext>> {
   return request.post('/sql/grammar/context', { sql, cursorPosition })
+}
+
+export function getSqlKeywords(type: string = 'MYSQL'): Promise<ApiResult<SqlKeywords>> {
+  return request.get('/sql/grammar/keywords', { params: { type } })
 }
 
 export function getCachedGrammarContext(): GrammarContext | null {

@@ -19,8 +19,6 @@ public class SqlTask {
 
     private String sqlContent;
 
-    private String sqlType;
-
     private String createdBy;
 
     private String status;

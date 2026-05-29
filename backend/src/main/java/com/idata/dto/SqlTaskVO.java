@@ -11,7 +11,6 @@ public class SqlTaskVO {
     private String description;
     private Long datasourceId;
     private String sqlContent;
-    private String sqlType;
     private String createdBy;
     private String datasourceType;
     private Boolean datasourceConnected;

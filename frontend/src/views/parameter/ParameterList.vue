@@ -12,11 +12,7 @@
 
       <el-table :data="parameters" stripe v-loading="loading">
         <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column prop="paramName" label="参数名称" min-width="160">
-          <template #default="{ row }">
-            <code class="param-name">{{ '${' + row.paramName + '}' }}</code>
-          </template>
-        </el-table-column>
+        <el-table-column prop="paramName" label="参数名称" min-width="160" />
         <el-table-column label="类型" width="120">
           <template #default="{ row }">
             <el-tag :type="row.paramType === 'STATIC' ? 'primary' : 'warning'" size="small" effect="light">

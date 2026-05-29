@@ -9,14 +9,13 @@
         <result column="description" property="description"/>
         <result column="datasource_id" property="datasourceId"/>
         <result column="sql_content" property="sqlContent"/>
-        <result column="sql_type" property="sqlType"/>
         <result column="status" property="status"/>
         <result column="created_at" property="createdAt"/>
         <result column="updated_at" property="updatedAt"/>
     </resultMap>
 
     <sql id="BaseColumns">
-        id, name, description, datasource_id, sql_content, sql_type, status, created_at, updated_at
+        id, name, description, datasource_id, sql_content, status, created_at, updated_at
     </sql>
 
 </mapper>

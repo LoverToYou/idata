@@ -7,7 +7,6 @@ export interface SqlTask {
   description?: string
   datasourceId?: number
   sqlContent: string
-  sqlType?: string
   datasourceType?: string
   datasourceConnected?: boolean | null
   status?: string
@@ -21,7 +20,6 @@ export interface SqlTaskRequest {
   description?: string
   datasourceId?: number | null
   sqlContent: string
-  sqlType?: string
 }
 
 export function listTasks(): Promise<ApiResult<SqlTask[]>> {

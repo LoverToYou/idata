@@ -3,6 +3,7 @@ package com.idata.controller;
 import com.idata.common.Result;
 import com.idata.dto.SqlGrammarContext;
 import com.idata.dto.SqlGrammarRequest;
+import com.idata.dto.SqlKeywordVO;
 import com.idata.service.grammar.SqlGrammarService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -29,5 +30,13 @@ public class SqlGrammarController {
         SqlGrammarContext context = sqlGrammarService.detectContext(
                 request.getSql(), request.getCursorPosition());
         return Result.success(context);
+    }
+
+    /**
+     * 根据数据库类型获取 SQL 关键词提示数据（语句/函数/类型/子句）。
+     */
+    @GetMapping("/keywords")
+    public Result<SqlKeywordVO> getKeywords(@RequestParam(defaultValue = "MYSQL") String type) {
+        return Result.success(sqlGrammarService.getKeywords(type));
     }
 }

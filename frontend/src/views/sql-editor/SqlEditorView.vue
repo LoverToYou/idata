@@ -25,11 +25,6 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="任务类型" width="100">
-          <template #default="{ row }">
-            <el-tag size="small" effect="plain" type="info">{{ row.sqlType || '-' }}</el-tag>
-          </template>
-        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'PUBLISHED' ? 'success' : 'info'" size="small" effect="light">
@@ -72,12 +67,12 @@
     </el-card>
 
     <!-- Editor View -->
-    <div v-else class="editor-view">
+    <div v-else :class="['editor-view', { 'editor-fullscreen': editorFullscreen }]">
       <!-- Toolbar -->
       <el-card shadow="hover" class="toolbar-card">
         <div class="toolbar">
           <div class="toolbar-left">
-            <el-button @click="handleBackToList">
+            <el-button @click="handleBackToList()">
               <el-icon><ArrowLeft /></el-icon> 返回
             </el-button>
             <el-input
@@ -131,12 +126,6 @@
             >
               下架
             </el-button>
-            <el-button @click="handleSave" :loading="saving" type="primary">
-              <el-icon><Check /></el-icon> 保存
-            </el-button>
-            <el-button @click="insertPromptTemplate">
-              插入提示词
-            </el-button>
             <el-button @click="handleFormat" :loading="formatting">
               格式化
             </el-button>
@@ -148,6 +137,9 @@
             </el-button>
             <el-button type="primary" @click="handleExecute" :loading="executing">
               ▶ 运行 (Ctrl+Enter)
+            </el-button>
+            <el-button @click="toggleEditorFullscreen">
+              <el-icon><template v-if="editorFullscreen"><Close /></template><template v-else><FullScreen /></template></el-icon>
             </el-button>
           </div>
         </div>
@@ -162,32 +154,86 @@
       <el-card shadow="hover" class="result-card">
         <el-tabs v-model="activeTab" class="result-tabs">
           <el-tab-pane label="查询结果" name="result">
-            <div v-if="executeResult">
-              <div class="result-meta">
-                <span v-if="executeResult.elapsedMs">耗时: {{ executeResult.elapsedMs }}ms</span>
-                <span v-if="executeResult.affectedRows >= 0"> | 行数: {{ executeResult.affectedRows }}</span>
+            <div v-if="allDisplayStatements.length > 0">
+              <!-- Result Switcher Tabs -->
+              <div class="result-switcher">
+                <div
+                  v-for="(item, rIdx) in allDisplayStatements"
+                  :key="item.id"
+                  class="switch-tab"
+                  :class="{ active: selectedStatement === item, error: !!item.result.errorMessage, pinned: isPinned(item) }"
+                  @click="selectedStatement = item"
+                >
+                  <span class="switch-tab__dot" :class="item.result.errorMessage ? 'dot-error' : 'dot-ok'" />
+                  结果 {{ rIdx + 1 }}
+                  <span class="switch-tab__meta">{{ item.result.elapsedMs }}ms</span>
+                  <span class="switch-tab__pin" :class="{ pinned: isPinned(item) }" @click.stop="togglePin(item)">{{ isPinned(item) ? '已置顶' : '置顶' }}</span>
+                </div>
               </div>
-              <el-table
-                v-if="executeResult.columns && executeResult.columns.length > 0"
-                :data="executeResult.rows"
-                border
-                stripe
-                max-height="300"
-                size="small"
-                style="width: 100%"
-              >
-                <el-table-column
-                  v-for="col in executeResult.columns"
-                  :key="col"
-                  :prop="col"
-                  :label="col"
-                  min-width="120"
-                />
-              </el-table>
-              <el-empty v-else-if="executeResult.affectedRows >= 0" description="执行成功，无返回数据" />
-              <el-alert v-if="executeResult.errorMessage" type="error" :description="executeResult.errorMessage" show-icon />
+
+              <!-- Selected Result Card -->
+              <div v-for="(item, rIdx) in allDisplayStatements" :key="item.id" v-show="selectedStatement === item" class="stmt-result-block" :class="{ 'pinned-border': isPinned(item) }">
+                <div class="stmt-result-block__header">
+                  <div class="stmt-result-block__header-left">
+                    <el-tag
+                      size="small"
+                      :type="item.result.errorMessage ? 'danger' : 'success'"
+                      effect="light"
+                    >
+                      结果 {{ rIdx + 1 }}
+                    </el-tag>
+                    <span class="stmt-elapsed" v-if="item.result.elapsedMs">{{ item.result.elapsedMs }}ms</span>
+                  </div>
+                  <div class="stmt-result-block__header-right">
+                    <span v-if="item.result.affectedRows >= 0" class="stmt-rows">{{ item.result.affectedRows }} 行</span>
+                    <el-button
+                      size="small"
+                      text
+                      :type="isPinned(item) ? 'warning' : 'default'"
+                      @click="togglePin(item)"
+                    >
+                      {{ isPinned(item) ? '取消置顶' : '置顶' }}
+                    </el-button>
+                  </div>
+                </div>
+                <div class="stmt-sql">
+                  <code class="stmt-sql__text">{{ item.sql }}</code>
+                  <code v-if="item.resolvedSql && item.resolvedSql !== item.sql" class="stmt-sql__resolved">→ {{ item.resolvedSql }}</code>
+                </div>
+                <div class="stmt-result">
+                  <el-table
+                    v-if="item.result.columns && item.result.columns.length > 0"
+                    :data="item.result.rows"
+                    border
+                    stripe
+                    max-height="300"
+                    size="small"
+                    style="width: 100%"
+                  >
+                    <el-table-column
+                      v-for="col in item.result.columns"
+                      :key="col"
+                      :prop="col"
+                      :label="col"
+                      min-width="120"
+                    />
+                  </el-table>
+                  <el-empty v-else-if="item.result.affectedRows >= 0" description="执行成功，无返回数据" />
+                  <el-alert v-if="item.result.errorMessage" type="error" :description="item.result.errorMessage" show-icon />
+                </div>
+              </div>
             </div>
             <el-empty v-else description="运行 SQL 查看结果" />
+          </el-tab-pane>
+
+          <el-tab-pane label="执行日志" name="log">
+            <div v-if="execLog.length > 0" class="exec-log">
+              <div v-for="(entry, i) in execLog" :key="i" :class="['log-line', 'log-' + entry.type]">
+                <span class="log-time">{{ entry.time }}</span>
+                <span class="log-msg">{{ entry.message }}</span>
+              </div>
+            </div>
+            <el-empty v-else description="暂无执行日志" />
           </el-tab-pane>
 
           <el-tab-pane label="执行计划" name="plan">
@@ -290,6 +336,9 @@
         <el-form-item label="任务名称" prop="name">
           <el-input v-model="newTaskForm.name" placeholder="请输入任务名称" maxlength="100" />
         </el-form-item>
+        <el-form-item label="任务描述" prop="description">
+          <el-input v-model="newTaskForm.description" placeholder="请输入任务描述" maxlength="200" type="textarea" :rows="2" />
+        </el-form-item>
         <el-form-item label="数据库类型" prop="dbType">
           <el-select v-model="newTaskForm.dbType" placeholder="请选择数据库类型" style="width: 100%" @change="onDbTypeChange">
             <el-option label="MySQL" value="MYSQL" />
@@ -316,20 +365,57 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Layout from '@/components/common/Layout.vue'
-import { listDatasources } from '@/api/datasource'
-import { executeSql, explainSql, analyzeSql, fullAnalyze, formatSql } from '@/api/sql'
+import { listDatasources, listDatasourceTables, listDatasourceDatabases } from '@/api/datasource'
+import { executeSql, explainSql, analyzeSql, fullAnalyze } from '@/api/sql'
 import { listTasks, getTask, createTask, updateTask, deleteTask, publishTask, unpublishTask } from '@/api/sql-task'
+import { getSqlKeywords, detectGrammarContext, getCachedGrammarContext, setCachedGrammarContext } from '@/api/grammar'
+import type { SqlKeywords } from '@/api/grammar'
 import type { DatasourceConfig } from '@/types'
 import type { SqlExecuteResult, ExplainPlanResult, SqlAnalysis, SqlSuggestion } from '@/api/sql'
+import { resolveParams } from '@/api/parameter'
 import * as monaco from 'monaco-editor'
+import { format as formatSql } from 'sql-formatter'
+
+interface ExecutedStatement {
+  id: number        // unique auto-increment ID for stable DOM key
+  sql: string       // original SQL before param resolution
+  resolvedSql: string  // actual SQL sent to database
+  result: SqlExecuteResult
+}
+let nextStmtId = 1
+
+interface ExecLogEntry {
+  time: string
+  message: string
+  type: 'info' | 'success' | 'error'
+}
 
 // --- Mode ---
 const mode = ref<'list' | 'edit'>('list')
 
-function handleBackToList() {
+async function handleBackToList(skipSave = false) {
+  if (!skipSave && currentTaskId.value) {
+    const sql = editor?.getValue() || ''
+    const name = taskName.value.trim()
+    if (name) {
+      saving.value = true
+      try {
+        const updatePayload: Record<string, any> = { id: currentTaskId.value, name, sqlContent: sql, datasourceId: selectedDatasource.value || null }
+        if (currentTask.value?.description) updatePayload.description = currentTask.value.description
+        await updateTask(updatePayload)
+        dirty.value = false
+        await loadTasks()
+        ElMessage.success('任务已自动保存')
+      } catch { /* auto-save failure is non-critical */ }
+      finally { saving.value = false }
+    }
+  }
+  stopAutoSave()
+  contentChangeDisposable?.dispose()
+  contentChangeDisposable = null
   editor?.dispose()
   editor = null
   mode.value = 'list'
@@ -365,6 +451,7 @@ function handleEditTask(task: any) {
   taskName.value = task.name
   mode.value = 'edit'
   ensureEditor()
+  startAutoSave()
   nextTick(() => loadTaskDetail(task.id))
 }
 
@@ -372,11 +459,19 @@ async function loadTaskDetail(id: number) {
   try {
     const res = await getTask(id)
     const detail = res.data
+    currentTask.value = detail
     if (editor) {
       editor.setValue(detail.sqlContent || '')
+      dirty.value = false
     }
     if (detail.datasourceId) {
       selectedDatasource.value = detail.datasourceId
+      await loadDatabases(detail.datasourceId)
+      await loadAllTables(detail.datasourceId)
+      const ds = datasources.value.find(d => d.id === detail.datasourceId)
+      if (ds) {
+        loadKeywords(ds.type)
+      }
     }
   } catch {
     ElMessage.error('加载任务失败')
@@ -389,6 +484,7 @@ const creating = ref(false)
 const createFormRef = ref<any>(null)
 const newTaskForm = reactive({
   name: '',
+  description: '',
   dbType: '' as string,
   datasourceId: undefined as number | undefined,
 })
@@ -409,20 +505,29 @@ function onDbTypeChange() {
 
 function onCreateDialogClosed() {
   newTaskForm.name = ''
+  newTaskForm.description = ''
   newTaskForm.dbType = ''
   newTaskForm.datasourceId = undefined
 }
 
-function generateDefaultComment(dsType: string): string {
+function generateDefaultComment(dsType: string, taskName: string = ''): string {
   const now = new Date()
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  const timeStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  const dateStr = `${y}${m}${d}`
+  const typeLabel = dsType === 'HIVE' ? 'Hive' : 'MySQL'
   return [
-    '*****************************',
-    '***创建时间: ' + timeStr,
-    '***创建人: ',
-    '***数据库类型: ' + dsType,
-    '*****************************',
+    `-- ${typeLabel} SQL`,
+    '-- **********************************************',
+    `-- 所属主题: ${taskName}`,
+    '-- 描述: ',
+    '-- 创建者 : ',
+    `-- 创建日期: ${dateStr}`,
+    '-- 修改日志:',
+    '-- 修改日期 修改人 修改内容',
+    '-- yyyymmdd name comment',
+    '-- **********************************************',
   ].join('\n')
 }
 
@@ -437,9 +542,10 @@ async function handleCreateConfirm() {
 
   creating.value = true
   try {
-    const defaultComment = generateDefaultComment(newTaskForm.dbType)
+    const defaultComment = generateDefaultComment(newTaskForm.dbType, newTaskForm.name.trim())
     const payload = {
       name: newTaskForm.name.trim(),
+      description: newTaskForm.description.trim() || undefined,
       sqlContent: defaultComment,
       datasourceId: newTaskForm.datasourceId!,
     }
@@ -448,10 +554,18 @@ async function handleCreateConfirm() {
     currentTask.value = res.data
     taskName.value = newTaskForm.name.trim()
     selectedDatasource.value = newTaskForm.datasourceId!
+    await loadDatabases(newTaskForm.datasourceId!)
+      await loadAllTables(newTaskForm.datasourceId!)
+    const ds = datasources.value.find(d => d.id === newTaskForm.datasourceId!)
+    if (ds) {
+      loadKeywords(ds.type)
+    }
 
     createDialogVisible.value = false
     mode.value = 'edit'
-    executeResult.value = null
+    startAutoSave()
+    executedStatements.value = []
+    execLog.value = []
     planResult.value = null
     suggestions.value = []
     analysis.value = null
@@ -461,6 +575,7 @@ async function handleCreateConfirm() {
     nextTick(() => {
       if (editor) {
         editor.setValue(defaultComment)
+        dirty.value = false
       }
     })
     await loadTasks()
@@ -472,39 +587,36 @@ async function handleCreateConfirm() {
   }
 }
 
-async function handleSave() {
-  if (!taskName.value.trim()) {
-    ElMessage.warning('请输入任务名称')
-    return
-  }
+async function handleSave(silent = false) {
+  if (!taskName.value.trim()) return
   const sql = editor?.getValue() || ''
-  if (!sql.trim()) {
-    ElMessage.warning('SQL 内容不能为空')
-    return
-  }
 
   saving.value = true
   try {
-    const payload = {
+    const payload: Record<string, any> = {
       name: taskName.value.trim(),
       sqlContent: sql,
       datasourceId: selectedDatasource.value || null,
     }
+    if (currentTask.value?.description) {
+      payload.description = currentTask.value.description
+    }
     if (currentTaskId.value) {
       await updateTask({ ...payload, id: currentTaskId.value })
-      ElMessage.success('任务已更新')
+      if (!silent) ElMessage.success('任务已更新')
     } else {
       const res = await createTask(payload)
       currentTaskId.value = res.data.id
       currentTask.value = res.data
-      ElMessage.success('任务已创建')
+      if (!silent) ElMessage.success('任务已创建')
     }
+    dirty.value = false
     await loadTasks()
     if (currentTaskId.value) {
       currentTask.value = tasks.value.find(t => t.id === currentTaskId.value) || currentTask.value
     }
   } catch (e: any) {
-    ElMessage.error(e.message || '保存失败')
+    if (!silent) ElMessage.error(e.message || '保存失败')
   } finally {
     saving.value = false
   }
@@ -517,7 +629,7 @@ async function handleDeleteTask(task: any) {
     })
     await deleteTask(task.id)
     if (currentTaskId.value === task.id) {
-      handleBackToList()
+      handleBackToList(true)
     }
     await loadTasks()
     ElMessage.success('已删除')
@@ -546,6 +658,26 @@ async function handleUnpublishTable(task: any) {
 const datasources = ref<DatasourceConfig[]>([])
 const selectedDatasource = ref<number | undefined>()
 const saving = ref(false)
+let autoSaveTimer: ReturnType<typeof setInterval> | null = null
+const dirty = ref(false)
+let contentChangeDisposable: monaco.IDisposable | null = null
+
+function startAutoSave() {
+  stopAutoSave()
+  dirty.value = false
+  autoSaveTimer = setInterval(tryAutoSave, 30000)
+}
+
+function stopAutoSave() {
+  if (autoSaveTimer) { clearInterval(autoSaveTimer); autoSaveTimer = null }
+}
+
+async function tryAutoSave() {
+  if (mode.value !== 'edit' || !currentTaskId.value || !dirty.value) return
+  await handleSave(true)
+}
+
+watch(taskName, () => { dirty.value = true })
 
 // --- SQL Result ---
 const activeTab = ref('result')
@@ -555,14 +687,254 @@ const analyzing = ref(false)
 const formatting = ref(false)
 const analyzed = ref(false)
 
-const executeResult = ref<SqlExecuteResult | null>(null)
+const executedStatements = ref<ExecutedStatement[]>([])
+const selectedStatement = ref<ExecutedStatement | null>(null)
+const pinnedStatements = ref<ExecutedStatement[]>([])
+
+function isPinned(item: ExecutedStatement): boolean {
+  return pinnedStatements.value.includes(item)
+}
+function togglePin(item: ExecutedStatement) {
+  const idx = pinnedStatements.value.indexOf(item)
+  if (idx >= 0) {
+    pinnedStatements.value.splice(idx, 1)
+  } else {
+    pinnedStatements.value.push(item)
+  }
+}
+
+const allDisplayStatements = computed(() => {
+  const pinned = pinnedStatements.value
+  const pinnedSet = new Set(pinned)
+  // Pinned results first (preserving order they were pinned), then current unpinned results
+  return [...pinned, ...executedStatements.value.filter(s => !pinnedSet.has(s))]
+})
+
+// After execution, select first unpinned result (pinned stays from before)
+watch(executedStatements, (stmts) => {
+  if (stmts.length > 0) {
+    const firstUnpinned = stmts.find(s => !isPinned(s))
+    if (firstUnpinned) selectedStatement.value = firstUnpinned
+  }
+})
+const execLog = ref<ExecLogEntry[]>([])
+
+function addExecLog(message: string, type: ExecLogEntry['type'] = 'info') {
+  const d = new Date()
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
+  execLog.value.push({ time, message, type })
+}
+function clearExecLog() { execLog.value = [] }
+
 const planResult = ref<ExplainPlanResult | null>(null)
 const suggestions = ref<SqlSuggestion[]>([])
 const analysis = ref<SqlAnalysis | null>(null)
 
+// --- Fullscreen ---
+const editorFullscreen = ref(false)
+
+function toggleEditorFullscreen() {
+  editorFullscreen.value = !editorFullscreen.value
+  // Layout recalc needed after the container changes size
+  nextTick(() => editor?.layout())
+}
+
 // --- Monaco Editor ---
 const monacoContainer = ref<HTMLDivElement>()
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
+let keywordCompletionDisposable: monaco.IDisposable | null = null
+const keywords = ref<SqlKeywords | null>(null)
+const tables = ref<{ tableName: string; schema: string }[]>([])
+const databases = ref<string[]>([])
+const tablesByDb = ref<Record<string, { tableName: string; schema: string }[]>>({})
+
+async function loadKeywords(dbType: string = 'MYSQL') {
+  try {
+    const res = await getSqlKeywords(dbType)
+    keywords.value = res.data
+    registerKeywordCompletion()
+  } catch { /* ignore */ }
+}
+
+async function loadDatabases(datasourceId: number) {
+  try {
+    const res = await listDatasourceDatabases(datasourceId)
+    databases.value = res.data || []
+  } catch {
+    databases.value = []
+  }
+}
+
+async function loadTables(datasourceId: number, database?: string) {
+  try {
+    const res = await listDatasourceTables(datasourceId, database)
+    const raw = res.data || []
+    const mapped = raw.map((t: any) => ({
+      tableName: t.tableName || t.TABLE_NAME || '',
+      schema: t.tableSchema || t.TABLE_SCHEMA || (database || ''),
+    })).filter(t => t.tableName)
+    if (database) {
+      tablesByDb.value[database.toUpperCase()] = mapped
+    } else {
+      tables.value = mapped
+    }
+  } catch {
+    if (database) {
+      tablesByDb.value[database.toUpperCase()] = []
+    } else {
+      tables.value = []
+    }
+  }
+}
+
+async function loadAllTables(datasourceId: number) {
+  // Load default database tables first
+  await loadTables(datasourceId)
+  // Then pre-load tables for all known databases in parallel
+  if (databases.value.length > 0) {
+    await Promise.all(databases.value.map(db => loadTables(datasourceId, db)))
+  }
+}
+
+let grammarTimer: ReturnType<typeof setTimeout> | null = null
+
+function updateGrammarContext(sql: string, pos: number) {
+  if (grammarTimer) clearTimeout(grammarTimer)
+  grammarTimer = setTimeout(async () => {
+    try {
+      const res = await detectGrammarContext(sql, pos)
+      setCachedGrammarContext(res.data)
+    } catch { /* ignore */ }
+  }, 300)
+}
+
+function registerKeywordCompletion() {
+  keywordCompletionDisposable?.dispose()
+  if (!keywords.value) return
+  keywordCompletionDisposable = monaco.languages.registerCompletionItemProvider('sql', {
+    triggerCharacters: ['.', ' '],
+    provideCompletionItems: (model, position) => {
+      const ctx = getCachedGrammarContext()
+      const result: any[] = []
+      const ks = monaco.languages.CompletionItemKind
+
+      // --- Dot prefix detection from model text ---
+      // When grammar context hasn't been updated yet (e.g. just typed '.'),
+      // infer the dot prefix from the text before cursor.
+      let effectivePrefix = ctx?.dotPrefix
+      let effectivePrefixType = ctx?.dotPrefixType
+      if (!effectivePrefix) {
+        const lineContent = model.getLineContent(position.lineNumber)
+        const textBefore = lineContent.substring(0, position.column - 1)
+        const dotMatch = textBefore.match(/(\w+)\.\s*$/)
+        if (dotMatch) {
+          effectivePrefix = dotMatch[1].toUpperCase()
+          effectivePrefixType = ctx?.expectsTable ? 'DATABASE' : undefined
+          // If ctx not available (debounce not yet fired), infer DATABASE type from known databases
+          if (!effectivePrefixType && databases.value.some(d => d.toUpperCase() === effectivePrefix)) {
+            effectivePrefixType = 'DATABASE'
+          }
+        }
+      }
+
+      // --- Database name suggestions ---
+      // When ctx is not yet loaded, default to showing all databases
+      if (!effectivePrefix && databases.value.length > 0) {
+        if (!ctx || ctx.expectsDatabase) {
+          result.push(...databases.value.map(db => ({
+            label: db,
+            kind: ks.Module,
+            insertText: db + '.',
+            detail: '数据库',
+            sortText: 'b' + db,
+          })))
+        }
+      }
+
+      // --- Table name suggestions ---
+      // When ctx is not yet loaded, default to showing all tables
+      if ((!ctx || ctx.expectsTable) && tables.value.length > 0) {
+        if (effectivePrefix && effectivePrefixType === 'DATABASE') {
+          const prefix = effectivePrefix
+          // Use pre-loaded per-database tables if available, fall back to filtering the default list
+          const perDb = tablesByDb.value[prefix]
+          if (perDb && perDb.length > 0) {
+            result.push(...perDb.map(t => ({
+              label: t.tableName,
+              kind: ks.Class,
+              insertText: t.tableName,
+              detail: '表名 (' + t.schema + ')',
+              sortText: 'a' + t.tableName,
+            })))
+          } else {
+            const filtered = tables.value.filter(t => t.schema.toUpperCase() === prefix)
+            result.push(...filtered.map(t => ({
+              label: t.tableName,
+              kind: ks.Class,
+              insertText: t.tableName,
+              detail: '表名 (' + t.schema + ')',
+              sortText: 'a' + t.tableName,
+            })))
+          }
+        } else {
+          result.push(...tables.value.map(t => ({
+            label: t.tableName,
+            kind: ks.Class,
+            insertText: t.tableName,
+            detail: '表名',
+            sortText: 'a' + t.tableName,
+          })))
+        }
+      }
+
+      // --- Keyword suggestions (filtered by context) ---
+      if (keywords.value) {
+        const kw = keywords.value
+        const allSuggestions = [
+          ...kw.statements.map(k => ({ label: k, kind: ks.Keyword, insertText: k, detail: 'SQL 语句', sortText: 'z' + k })),
+          ...kw.functions.map(k => ({ label: k, kind: ks.Function, insertText: k, detail: '内置函数', sortText: 'z' + k })),
+          ...kw.types.map(k => ({ label: k, kind: ks.TypeParameter, insertText: k, detail: '数据类型', sortText: 'z' + k })),
+          ...kw.clauses.map(k => ({ label: k, kind: ks.Keyword, insertText: k, detail: 'SQL 子句', sortText: 'z' + k })),
+        ]
+        if (!ctx) {
+          result.push(...allSuggestions)
+        } else {
+          const validList = ctx.validKeywords.map(k => k.toUpperCase())
+          // 构建优先级索引：validKeywords 中越靠前优先级越高
+          const priorityIndex: Record<string, string> = {}
+          validList.forEach((k, i) => {
+            priorityIndex[k] = String(i).padStart(3, '0')
+          })
+          const expectFunction = ctx.expectsFunction
+          result.push(...allSuggestions
+            .filter(s => {
+              const label = (s.label as string).toUpperCase()
+              if (s.detail === '内置函数' || label.endsWith('()')) return expectFunction
+              if (s.detail === '数据类型') return true
+              if (s.detail === 'SQL 语句' || s.detail === 'SQL 子句') {
+                if (validList.length === 0) return true
+                return validList.some(v => label.includes(v) || v.includes(label))
+              }
+              return true
+            })
+            .map(s => {
+              const label = (s.label as string).toUpperCase()
+              const prio = priorityIndex[label]
+              if (prio !== undefined) {
+                return { ...s, sortText: 'a' + prio + label }
+              }
+              return s
+            })
+          )
+        }
+      }
+
+      return { suggestions: result }
+    },
+  })
+}
+
+// --- Monaco Editor ---
 
 onMounted(async () => {
   try {
@@ -570,8 +942,16 @@ onMounted(async () => {
     datasources.value = res.data
     if (res.data.length > 0) {
       selectedDatasource.value = res.data[0].id
+      await loadDatabases(res.data[0].id)
+      await loadAllTables(res.data[0].id)
+      const ds = res.data[0]
+      await loadKeywords(ds.type)
+    } else {
+      await loadKeywords('MYSQL')
     }
-  } catch { /* ignore */ }
+  } catch {
+    await loadKeywords('MYSQL')
+  }
   await loadTasks()
 })
 
@@ -595,36 +975,51 @@ function ensureEditor() {
       automaticLayout: true,
       scrollBeyondLastLine: false,
       wordWrap: 'on',
+      quickSuggestions: true,
+      suggestOnTriggerCharacters: true,
     })
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       handleExecute()
     })
-    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyP, () => {
-      insertPromptTemplate()
+    contentChangeDisposable = editor.onDidChangeModelContent(() => {
+      dirty.value = true
+    })
+    editor.onDidChangeCursorPosition(() => {
+      const model = editor?.getModel()
+      if (!model) return
+      const sql = model.getValue()
+      if (!sql.trim()) return
+      const offset = model.getOffsetAt(editor!.getPosition()!)
+      updateGrammarContext(sql, offset)
     })
   })
 }
 
-function insertPromptTemplate() {
-  if (!editor) return
-  const dsType = currentTask.value?.datasourceType
-  const template = generateDefaultComment(dsType || '')
-  const selection = editor.getSelection()
-  const range = selection ? new monaco.Range(
-    selection.startLineNumber, selection.startColumn,
-    selection.endLineNumber, selection.endColumn
-  ) : null
-  editor.executeEdits('prompt-template', [
-    { range: range || new monaco.Range(1, 1, 1, 1), text: template, forceMoveMarkers: true },
-  ])
-}
-
-onBeforeUnmount(() => {
+onBeforeUnmount(async () => {
+  if (currentTaskId.value) {
+    const sql = editor?.getValue() || ''
+    const name = taskName.value.trim()
+    if (name) {
+      const unmountPayload: Record<string, any> = { id: currentTaskId.value, name, sqlContent: sql, datasourceId: selectedDatasource.value || null }
+      if (currentTask.value?.description) unmountPayload.description = currentTask.value.description
+      try { await updateTask(unmountPayload) } catch { /* ignore */ }
+    }
+  }
+  stopAutoSave()
+  if (grammarTimer) clearTimeout(grammarTimer)
+  keywordCompletionDisposable?.dispose()
+  contentChangeDisposable?.dispose()
   editor?.dispose()
 })
 
-function onDatasourceChange(val: number) {
+async function onDatasourceChange(val: number) {
   selectedDatasource.value = val
+  await loadDatabases(val)
+  await loadAllTables(val)
+  const ds = datasources.value.find(d => d.id === val)
+  if (ds) {
+    loadKeywords(ds.type)
+  }
 }
 
 function getEditorSql(): string {
@@ -646,12 +1041,61 @@ async function handleExecute() {
 
   executing.value = true
   activeTab.value = 'result'
-  try {
-    const res = await executeSql(selectedDatasource.value, sql)
-    executeResult.value = res.data
-  } finally {
-    executing.value = false
+  clearExecLog()
+
+  // Split original SQL by ; first
+  const origStatements = sql.split(';').map(s => s.trim()).filter(s => s.length > 0)
+  addExecLog(`开始执行 ${origStatements.length} 条语句`, 'info')
+
+  const stmts: ExecutedStatement[] = []
+  for (let i = 0; i < origStatements.length; i++) {
+    const origStmt = origStatements[i]
+    addExecLog(`── 语句 ${i + 1} ──────────────────────────────`, 'info')
+    addExecLog(`原始: ${origStmt}`, 'info')
+
+    // Resolve parameters per statement
+    let resolvedStmt: string
+    let resolvedParams: Record<string, string> = {}
+    try {
+      const res = await resolveParams(origStmt)
+      resolvedStmt = res.data.resolvedSql ?? origStmt
+      resolvedParams = res.data.resolvedParams || {}
+    } catch {
+      resolvedStmt = origStmt
+    }
+
+    if (resolvedStmt !== origStmt) {
+      addExecLog(`解析: ${resolvedStmt}`, 'info')
+      for (const [name, value] of Object.entries(resolvedParams)) {
+        addExecLog(`  参数 ${name} → ${value}`, 'info')
+      }
+    }
+
+    const label = resolvedStmt.length > 80 ? resolvedStmt.slice(0, 80) + '...' : resolvedStmt
+    try {
+      addExecLog(`执行: ${label}`, 'info')
+      const res = await executeSql(selectedDatasource.value, resolvedStmt)
+      const result = res.data
+      stmts.push({ id: nextStmtId++, sql: origStmt, resolvedSql: resolvedStmt, result })
+      if (result.errorMessage) {
+        addExecLog(`失败: ${result.errorMessage}`, 'error')
+      } else {
+        const parts: string[] = []
+        if (result.elapsedMs) parts.push(`耗时 ${result.elapsedMs}ms`)
+        if (result.affectedRows >= 0) parts.push(`影响 ${result.affectedRows} 行`)
+        if (result.columns?.length) parts.push(`返回 ${result.columns.length} 列 × ${result.rows?.length || 0} 行`)
+        addExecLog(`成功: ${parts.join('，')}`, 'success')
+      }
+    } catch (e: any) {
+      const errMsg = e.message || '执行失败'
+      stmts.push({ id: nextStmtId++, sql: origStmt, resolvedSql: resolvedStmt, result: { columns: [], rows: [], affectedRows: -1, elapsedMs: 0, errorMessage: errMsg } })
+      addExecLog(`失败: ${errMsg}`, 'error')
+    }
   }
+  executedStatements.value = stmts
+  const ok = stmts.filter(s => !s.result.errorMessage).length
+  addExecLog(`执行完毕，${ok}/${stmts.length} 条成功`, stmts.some(s => s.result.errorMessage) ? 'error' : 'success')
+  executing.value = false
 }
 
 async function handleExplain() {
@@ -662,10 +1106,17 @@ async function handleExplain() {
   const sql = getEditorSql().trim()
   if (!sql) { ElMessage.warning('SQL 不能为空'); return }
 
+  // Resolve parameters before explain
+  let stmtToExplain = sql
+  try {
+    const res = await resolveParams(sql)
+    if (res.data.resolvedSql) stmtToExplain = res.data.resolvedSql
+  } catch { /* use original */ }
+
   explaining.value = true
   activeTab.value = 'plan'
   try {
-    const res = await explainSql(selectedDatasource.value, sql)
+    const res = await explainSql(selectedDatasource.value, stmtToExplain)
     planResult.value = res.data
   } finally {
     explaining.value = false
@@ -676,16 +1127,27 @@ async function handleAnalyze() {
   const sql = getEditorSql().trim()
   if (!sql) { ElMessage.warning('SQL 不能为空'); return }
 
+  // 多条 SQL 只分析第一条
+  const firstStmt = sql.split(';').map(s => s.trim()).find(s => s.length > 0)
+  if (!firstStmt) { ElMessage.warning('SQL 不能为空'); return }
+
+  // Resolve parameters before analysis
+  let stmtToAnalyze = firstStmt
+  try {
+    const res = await resolveParams(firstStmt)
+    if (res.data.resolvedSql) stmtToAnalyze = res.data.resolvedSql
+  } catch { /* use original */ }
+
   analyzing.value = true
   activeTab.value = 'analysis'
   try {
-    const res = await analyzeSql(sql)
+    const res = await analyzeSql(stmtToAnalyze)
     analysis.value = res.data.analysis
     analyzed.value = true
 
     if (selectedDatasource.value && res.data.analysis.valid) {
       try {
-        const fullRes = await fullAnalyze(selectedDatasource.value, sql)
+        const fullRes = await fullAnalyze(selectedDatasource.value, stmtToAnalyze)
         suggestions.value = fullRes.data.suggestions
         planResult.value = fullRes.data.plan
       } catch { /* plan might fail, that's ok */ }
@@ -695,19 +1157,25 @@ async function handleAnalyze() {
   }
 }
 
-async function handleFormat() {
+function handleFormat() {
   const sql = getEditorSql().trim()
   if (!sql) { ElMessage.warning('SQL 不能为空'); return }
 
-  formatting.value = true
   try {
-    const res = await formatSql(sql)
-    if (editor && res.data.formatted) {
-      editor.setValue(res.data.formatted)
+    const ds = datasources.value.find(d => d.id === selectedDatasource.value)
+    const language = ds?.type === 'HIVE' ? 'hive' : 'mysql'
+    const formatted = formatSql(sql, {
+      language,
+      uppercase: true,
+      tabWidth: 2,
+      linesBetweenQueries: 2,
+    })
+    if (editor) {
+      editor.setValue(formatted)
     }
     ElMessage.success('格式化完成')
-  } finally {
-    formatting.value = false
+  } catch (e: any) {
+    ElMessage.error('格式化失败: ' + (e.message || '未知错误'))
   }
 }
 
@@ -809,9 +1277,45 @@ async function handleUnpublish() {
 
 .monaco-container {
   width: 100%;
-  height: 200px;
+  min-height: 200px;
+  height: 55vh;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
+}
+
+.editor-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000 !important;
+  background: #fff;
+  padding: 12px;
+  height: 100vh !important;
+}
+
+.editor-fullscreen .result-card {
+  flex: 0 0 auto;
+  max-height: 35vh;
+  overflow: auto;
+}
+
+.editor-fullscreen .monaco-container {
+  height: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-fullscreen .editor-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-fullscreen .editor-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
 }
 
 .result-card {
@@ -822,6 +1326,9 @@ async function handleUnpublish() {
 
 .result-tabs {
   height: 100%;
+}
+.result-tabs :deep(.el-tabs__content) {
+  overflow-y: auto;
 }
 
 .result-meta {
@@ -906,4 +1413,182 @@ async function handleUnpublish() {
 .dot-na {
   background-color: #c0c4cc;
 }
+
+/* Executed statement block: SQL + result pair */
+.stmt-result-block {
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.stmt-result-block.pinned-border {
+  border-color: #e6a23c;
+  box-shadow: 0 0 0 1px #e6a23c;
+}
+.stmt-result-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #f5f7fa;
+  border-bottom: 1px solid #ebeef5;
+}
+.stmt-result-block__header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stmt-result-block__header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pinned-label {
+  font-size: 12px;
+  color: #e6a23c;
+  font-weight: 600;
+}
+.stmt-elapsed {
+  font-size: 11px;
+  color: #c0c4cc;
+}
+.stmt-rows {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* Result switcher tabs */
+.result-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e4e7ed;
+}
+.switch-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #606266;
+  background: #fff;
+  transition: all 0.15s;
+}
+.switch-tab.pinned {
+  border-color: #e6a23c;
+  background: #fdf6ec;
+}
+.switch-tab__pin {
+  font-size: 11px;
+  color: #c0c4cc;
+  cursor: pointer;
+  padding: 0 2px;
+  user-select: none;
+}
+.switch-tab__pin:hover { color: #e6a23c; }
+.switch-tab__pin.pinned { color: #e6a23c; font-weight: 600; }
+.switch-tab:hover {
+  border-color: #409eff;
+  color: #409eff;
+}
+.switch-tab.active {
+  border-color: #409eff;
+  color: #409eff;
+  background: #ecf5ff;
+}
+.switch-tab.error {
+  border-color: #f56c6c;
+  color: #f56c6c;
+}
+.switch-tab.error.active {
+  background: #fef0f0;
+  border-color: #f56c6c;
+  color: #f56c6c;
+}
+.switch-tab__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-ok { background: #67c23a; }
+.dot-error { background: #f56c6c; }
+.switch-tab__meta {
+  color: #c0c4cc;
+  font-size: 11px;
+  margin-left: 2px;
+}
+.stmt-sql {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f5f7fa;
+  padding: 8px 12px;
+  border-bottom: 1px solid #ebeef5;
+}
+.stmt-sql__badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #409eff;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 1px;
+}
+.stmt-sql__text {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  color: #303133;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.stmt-sql__resolved {
+  display: block;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  color: #67c23a;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: #f0f9eb;
+  border-radius: 3px;
+}
+.stmt-result {
+  padding: 8px 12px;
+}
+
+/* Execution log */
+.exec-log {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.log-line {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px solid #f2f2f2;
+}
+.log-time {
+  color: #c0c4cc;
+  flex-shrink: 0;
+}
+.log-msg {
+  flex: 1;
+}
+.log-info .log-msg { color: #606266; }
+.log-success .log-msg { color: #67c23a; }
+.log-error .log-msg { color: #f56c6c; }
 </style>

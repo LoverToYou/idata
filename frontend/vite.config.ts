@@ -26,6 +26,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      'monaco-editor': resolve(__dirname, 'node_modules/monaco-editor/esm/vs/editor/editor.main.js'),
     },
   },
   test: {
@@ -34,7 +35,7 @@ export default defineConfig({
     css: true,
     server: {
       deps: {
-        inline: ['element-plus', /element-plus/],
+        inline: ['element-plus', /element-plus/, 'monaco-editor'],
       },
     },
   },

@@ -76,7 +76,6 @@ public class SqlTaskService {
         task.setDescription(req.getDescription());
         task.setDatasourceId(req.getDatasourceId());
         task.setSqlContent(req.getSqlContent());
-        task.setSqlType(detectSqlType(req.getSqlContent()));
         task.setStatus("DRAFT");
         sqlTaskMapper.insert(task);
         return toVO(task);
@@ -91,11 +90,6 @@ public class SqlTaskService {
         task.setDescription(req.getDescription());
         task.setDatasourceId(req.getDatasourceId());
         task.setSqlContent(req.getSqlContent());
-        if (req.getSqlType() != null) {
-            task.setSqlType(req.getSqlType());
-        } else {
-            task.setSqlType(detectSqlType(req.getSqlContent()));
-        }
         sqlTaskMapper.updateById(task);
         return toVO(sqlTaskMapper.selectById(req.getId()));
     }
@@ -138,7 +132,6 @@ public class SqlTaskService {
         vo.setDescription(task.getDescription());
         vo.setDatasourceId(task.getDatasourceId());
         vo.setSqlContent(task.getSqlContent());
-        vo.setSqlType(task.getSqlType());
         vo.setCreatedBy(task.getCreatedBy());
         vo.setStatus(task.getStatus());
         vo.setCreatedAt(task.getCreatedAt());
@@ -154,19 +147,4 @@ public class SqlTaskService {
         return vo;
     }
 
-    private String detectSqlType(String sql) {
-        if (sql == null || sql.isBlank()) return "OTHER";
-        String trimmed = sql.trim().toUpperCase();
-        if (trimmed.startsWith("SELECT")) return "SELECT";
-        if (trimmed.startsWith("INSERT")) return "INSERT";
-        if (trimmed.startsWith("UPDATE")) return "UPDATE";
-        if (trimmed.startsWith("DELETE")) return "DELETE";
-        if (trimmed.startsWith("CREATE")) return "CREATE";
-        if (trimmed.startsWith("ALTER")) return "ALTER";
-        if (trimmed.startsWith("DROP")) return "DROP";
-        if (trimmed.startsWith("TRUNCATE")) return "TRUNCATE";
-        if (trimmed.startsWith("SHOW")) return "SHOW";
-        if (trimmed.startsWith("DESC") || trimmed.startsWith("DESCRIBE")) return "DESCRIBE";
-        return "OTHER";
-    }
 }

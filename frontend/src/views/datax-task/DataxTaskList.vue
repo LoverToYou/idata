@@ -75,6 +75,9 @@
         <el-form-item label="任务名称" required>
           <el-input v-model="createForm.name" placeholder="输入任务名称" />
         </el-form-item>
+        <el-form-item label="任务描述">
+          <el-input v-model="createForm.description" placeholder="请输入任务描述" maxlength="200" type="textarea" :rows="2" />
+        </el-form-item>
         <el-form-item label="任务类型">
           <el-select v-model="createForm.taskType" disabled style="width: 100%">
             <el-option label="DataX 数据同步" value="DataX" />
@@ -134,6 +137,7 @@ const createDialogVisible = ref(false)
 const creating = ref(false)
 const createForm = reactive({
   name: '',
+  description: '',
   taskType: 'DataX',
   configMode: 'UI',
 })
@@ -158,6 +162,7 @@ async function loadTasks() {
 
 function handleCreate() {
   createForm.name = ''
+  createForm.description = ''
   createForm.configMode = 'UI'
   createDialogVisible.value = true
 }
@@ -172,6 +177,7 @@ async function handleCreateConfirm() {
   try {
     const payload: DataxTaskRequest = {
       name: createForm.name.trim(),
+      description: createForm.description.trim() || undefined,
       configMode: createForm.configMode,
     }
     const res = await createDataxTask(payload)

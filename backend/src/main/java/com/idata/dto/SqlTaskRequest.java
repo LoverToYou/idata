@@ -15,6 +15,4 @@ public class SqlTaskRequest {
     private Long datasourceId;
 
     private String sqlContent;
-
-    private String sqlType;
 }

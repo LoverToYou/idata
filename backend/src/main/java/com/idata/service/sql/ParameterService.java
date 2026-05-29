@@ -25,6 +25,15 @@ public class ParameterService {
     private static final Logger log = LoggerFactory.getLogger(ParameterService.class);
     private static final Pattern PARAM_PATTERN = Pattern.compile("\\$\\{(\\w+)}");
 
+    /** Built-in dynamic keywords that work without a DB parameter entry. */
+    private static final Set<String> BUILTIN_KEYWORDS = Set.of(
+            "now", "today", "yesterday", "tomorrow",
+            "this_month", "last_month", "this_year",
+            "yyyyMMdd", "yyyy-MM-dd", "yyyyMM", "yyyy-MM", "yyyy",
+            "this_month_start", "this_month_end",
+            "last_month_start", "last_month_end"
+    );
+
     private final ParameterMapper parameterMapper;
 
     public ParameterService(ParameterMapper parameterMapper) {
@@ -185,12 +194,18 @@ public class ParameterService {
      */
     private Map<String, String> buildResolvedMap(List<Parameter> params) {
         Map<String, String> map = new HashMap<>();
+        // 1. User-defined DB params are loaded first
         for (Parameter p : params) {
             if ("STATIC".equals(p.getParamType())) {
                 map.put(p.getParamName(), p.getParamValue() != null ? p.getParamValue() : "");
             } else if ("DYNAMIC".equals(p.getParamType())) {
                 map.put(p.getParamName(), evalDynamic(p.getExpression()));
             }
+        }
+        // 2. Built-in keywords ALWAYS override (today → date, yesterday → date-1, etc.)
+        //    This ensures ${today} works even if the DB has a misconfigured "today" entry.
+        for (String kw : BUILTIN_KEYWORDS) {
+            map.put(kw, evalDynamic(kw));
         }
         return map;
     }

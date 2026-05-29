@@ -28,6 +28,7 @@ const { mockCreateTask, mockUpdateTask, mockGetTask, mockListTasks, mockEditorIn
     onDidChangeCursorPosition: vi.fn().mockReturnValue({ dispose: vi.fn() }),
     getSelection: vi.fn().mockReturnValue({ isEmpty: () => true }),
     addCommand: vi.fn(),
+    trigger: vi.fn(),
     getModel: vi.fn(),
   },
 }))
@@ -63,6 +64,7 @@ vi.mock('@/api/datasource', () => ({
   listDatasourceTables: vi.fn().mockResolvedValue({ code: 200, data: [] }),
   getDatasourceTableColumns: vi.fn().mockResolvedValue({ code: 200, data: [] }),
   listAccessibleDatabases: vi.fn().mockResolvedValue({ code: 200, data: [] }),
+  listDatasourceDatabases: vi.fn().mockResolvedValue({ code: 200, data: [] }),
 }))
 
 vi.mock('@/api/sql-task', () => ({
@@ -118,10 +120,10 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
     // 打开新建对话框
     wrapper.vm.handleNewTask()
     await nextTick()
-    expect(wrapper.vm.newTaskDialogVisible).toBe(true)
+    expect(wrapper.vm.createDialogVisible).toBe(true)
 
     // 取消（关闭对话框）
-    wrapper.vm.newTaskDialogVisible = false
+    wrapper.vm.createDialogVisible = false
     await nextTick()
 
     // 仍停留在列表模式，未切换
@@ -137,7 +139,7 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
     wrapper.vm.handleNewTask()
     await nextTick()
     wrapper.vm.newTaskForm.name = '测试SQL任务'
-    wrapper.vm.newTaskForm.sqlType = 'MYSQL'
+    wrapper.vm.newTaskForm.dbType = 'MYSQL'
     wrapper.vm.newTaskForm.datasourceId = 1
 
     mockCreateTask.mockResolvedValue({
@@ -145,23 +147,28 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
       data: { id: 42, name: '测试SQL任务', sqlContent: '' },
     })
 
+    // Mock form validation before confirm
+    wrapper.vm.createFormRef = { validate: vi.fn().mockResolvedValue(true) }
+
     // 确认创建
-    wrapper.vm.handleNewTaskConfirm()
+    wrapper.vm.handleCreateConfirm()
     await flushPromises()
     await nextTick()
+    await nextTick() // extra tick for inner nextTick (editor.create + setValue)
 
-    // createTask 被调用（任务内容为空）
-    expect(mockCreateTask).toHaveBeenCalledWith({
-      name: '测试SQL任务',
-      sqlContent: '',
-      datasourceId: 1,
-    })
+    // createTask 被调用（任务内容为默认注释模板）
+    expect(mockCreateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: '测试SQL任务',
+        datasourceId: 1,
+      })
+    )
 
-    // 进入编辑模式，编辑器内容为空
+    // 进入编辑模式，编辑器包含默认注释
     expect(wrapper.vm.mode).toBe('edit')
     expect(wrapper.vm.taskName).toBe('测试SQL任务')
     expect(wrapper.vm.currentTaskId).toBe(42)
-    expect(mockEditorInstance.setValue).toHaveBeenCalledWith('')
+    expect(mockEditorInstance.setValue).toHaveBeenCalled()
   })
 
   it('完整流程：对话框确认创建 → 编辑内容 → 再次保存', async () => {
@@ -172,7 +179,7 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
     wrapper.vm.handleNewTask()
     await nextTick()
     wrapper.vm.newTaskForm.name = '测试SQL任务'
-    wrapper.vm.newTaskForm.sqlType = 'MYSQL'
+    wrapper.vm.newTaskForm.dbType = 'MYSQL'
     wrapper.vm.newTaskForm.datasourceId = 1
 
     mockCreateTask.mockResolvedValue({
@@ -180,20 +187,24 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
       data: { id: 42, name: '测试SQL任务', sqlContent: '' },
     })
 
-    wrapper.vm.handleNewTaskConfirm()
+    wrapper.vm.createFormRef = { validate: vi.fn().mockResolvedValue(true) }
+
+    wrapper.vm.handleCreateConfirm()
     await flushPromises()
     await nextTick()
+    await nextTick() // extra tick for editor.create + setValue
 
-    // 确认创建后直接进入编辑模式，currentTaskId 已设置，内容为空
-    expect(mockCreateTask).toHaveBeenCalledWith({
-      name: '测试SQL任务',
-      sqlContent: '',
-      datasourceId: 1,
-    })
+    // 确认创建后直接进入编辑模式，currentTaskId 已设置，内容为默认注释
+    expect(mockCreateTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: '测试SQL任务',
+        datasourceId: 1,
+      })
+    )
     expect(wrapper.vm.mode).toBe('edit')
     expect(wrapper.vm.taskName).toBe('测试SQL任务')
     expect(wrapper.vm.currentTaskId).toBe(42)
-    expect(mockEditorInstance.setValue).toHaveBeenCalledWith('')
+    expect(mockEditorInstance.setValue).toHaveBeenCalled()
 
     // 写入 SQL 内容后保存（已有 currentTaskId，走 updateTask）
     const editedSql = 'SELECT id, name, email\nFROM users\nWHERE status = 1\nORDER BY id'
@@ -223,7 +234,7 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
     wrapper.vm.handleNewTask()
     await nextTick()
     wrapper.vm.newTaskForm.name = 'test'
-    wrapper.vm.newTaskForm.sqlType = 'MYSQL'
+    wrapper.vm.newTaskForm.dbType = 'MYSQL'
     wrapper.vm.newTaskForm.datasourceId = 1
 
     mockCreateTask.mockResolvedValue({
@@ -231,12 +242,15 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
       data: { id: 1, name: 'test', sqlContent: '' },
     })
 
-    wrapper.vm.handleNewTaskConfirm()
+    wrapper.vm.createFormRef = { validate: vi.fn().mockResolvedValue(true) }
+
+    wrapper.vm.handleCreateConfirm()
     await flushPromises()
     await nextTick()
+    await nextTick() // extra tick for editor.create + setValue
 
-    // 编辑器应已创建（内容为空）
-    expect(mockEditorInstance.setValue).toHaveBeenCalledWith('')
+    // 编辑器应已创建
+    expect(mockEditorInstance.setValue).toHaveBeenCalled()
 
     // 额外设置任务状态
     wrapper.vm.currentTaskId = 42
@@ -244,7 +258,8 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
     wrapper.vm.taskName = 'test'
 
     // 执行返回列表
-    wrapper.vm.handleBackToList()
+    await wrapper.vm.handleBackToList()
+    await flushPromises()
     await nextTick()
 
     expect(wrapper.vm.mode).toBe('list')
@@ -269,7 +284,6 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
       sqlContent: 'SELECT COUNT(*) FROM orders',
       datasourceId: 1,
       status: 'DRAFT',
-      sqlType: 'MYSQL',
     }
     mockGetTask.mockResolvedValue({ code: 200, data: taskDetail })
 
@@ -287,22 +301,88 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
     expect(mockEditorInstance.setValue).toHaveBeenCalledWith('SELECT COUNT(*) FROM orders')
   })
 
-  it('loadAllTableMetadata 加载所有库的表，前端可分别查询不同库的表', async () => {
+  it('返回时自动保存当前编辑内容', async () => {
     const wrapper = createWrapper()
     await flushPromises()
 
-    // mock listAccessibleDatabases and listDatasourceTables
+    const taskDetail = {
+      id: 10,
+      name: '已有任务',
+      sqlContent: 'SELECT 1',
+      datasourceId: 1,
+      status: 'DRAFT',
+    }
+    mockGetTask.mockResolvedValue({ code: 200, data: taskDetail })
+    mockUpdateTask.mockResolvedValue({ code: 200, data: { id: 10 } })
+
+    wrapper.vm.handleEditTask({ id: 10, name: '已有任务' })
+    await flushPromises()
+    await nextTick()
+
+    // 模拟编辑器内容变更
+    mockEditorInstance.getValue.mockReturnValue('SELECT COUNT(*) FROM orders')
+
+    // 点击返回
+    await wrapper.vm.handleBackToList()
+    await flushPromises()
+
+    // 验证自动保存被调用，且内容是最新的
+    expect(mockUpdateTask).toHaveBeenCalledWith({
+      id: 10,
+      name: '已有任务',
+      sqlContent: 'SELECT COUNT(*) FROM orders',
+      datasourceId: 1,
+    })
+    wrapper.unmount()
+  })
+
+  it('返回时即使编辑器内容未变更也应保存', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    const taskDetail = {
+      id: 20,
+      name: 'test',
+      sqlContent: 'SELECT 1',
+      datasourceId: 1,
+      status: 'DRAFT',
+    }
+    mockGetTask.mockResolvedValue({ code: 200, data: taskDetail })
+    mockUpdateTask.mockResolvedValue({ code: 200, data: { id: 20 } })
+
+    wrapper.vm.handleEditTask({ id: 20, name: 'test' })
+    await flushPromises()
+    await nextTick()
+
+    // 不修改内容，直接返回
+    mockEditorInstance.getValue.mockReturnValue('SELECT 1')
+    await wrapper.vm.handleBackToList()
+    await flushPromises()
+
+    // 即使内容没变，返回时也应保存
+    expect(mockUpdateTask).toHaveBeenCalled()
+    expect(mockUpdateTask).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 20, name: 'test', sqlContent: 'SELECT 1' })
+    )
+    wrapper.unmount()
+  })
+
+  it('loadDatabases + loadAllTables 加载所有库的表，前端可分别查询不同库的表', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
     wrapper.vm.selectedDatasource = 1
 
-    // Need to mock listAccessibleDatabases since it's called inside loadAllTableMetadata
-    const { listAccessibleDatabases } = await import('@/api/datasource')
-    vi.mocked(listAccessibleDatabases).mockResolvedValue({
+    const { listDatasourceDatabases } = await import('@/api/datasource')
+    vi.mocked(listDatasourceDatabases).mockResolvedValue({
       code: 200,
       data: ['test', 'mysql'],
     })
 
     vi.mocked(listDatasourceTables)
-      // first call: test db tables
+      // first call: default tables (no database param)
+      .mockResolvedValueOnce({ code: 200, data: [] })
+      // second call: test db tables
       .mockResolvedValueOnce({
         code: 200,
         data: [
@@ -311,7 +391,7 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
           { tableSchema: 'test', tableName: 'products' },
         ],
       })
-      // second call: mysql db tables
+      // third call: mysql db tables
       .mockResolvedValueOnce({
         code: 200,
         data: [
@@ -320,17 +400,32 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
         ],
       })
 
-    await wrapper.vm.loadAllTableMetadata(1)
+    await wrapper.vm.loadDatabases(1)
+    await wrapper.vm.loadAllTables(1)
     await flushPromises()
 
     // 所有数据库列表已加载
-    expect(wrapper.vm.availableDatabases).toEqual(['test', 'mysql'])
-    // 默认库（test）的表可通过 databaseTables 查询
-    expect(wrapper.vm.databaseTables.get('test')).toEqual(['orders', 'users', 'products'])
-    // 跨库（mysql）的表也可通过 databaseTables 查询
-    expect(wrapper.vm.databaseTables.get('mysql')).toEqual(['help_topic', 'time_zone'])
-    // 默认库的表和跨库的表完全隔离
-    expect(wrapper.vm.databaseTables.get('test')).not.toContain('help_topic')
-    expect(wrapper.vm.databaseTables.get('test')).not.toContain('time_zone')
+    expect(wrapper.vm.databases).toEqual(['test', 'mysql'])
+    // test 库的表可通过 tablesByDb 查询
+    expect(wrapper.vm.tablesByDb['TEST']).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tableName: 'orders', schema: 'test' }),
+        expect.objectContaining({ tableName: 'users', schema: 'test' }),
+        expect.objectContaining({ tableName: 'products', schema: 'test' }),
+      ])
+    )
+    // mysql 库的表也可通过 tablesByDb 查询
+    expect(wrapper.vm.tablesByDb['MYSQL']).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tableName: 'help_topic', schema: 'mysql' }),
+        expect.objectContaining({ tableName: 'time_zone', schema: 'mysql' }),
+      ])
+    )
+    // 不同库的表完全隔离
+    expect(wrapper.vm.tablesByDb['TEST']).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ tableName: 'help_topic' })])
+    )
+    wrapper.unmount()
   })
+
 })

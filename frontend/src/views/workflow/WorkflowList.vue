@@ -12,7 +12,7 @@
               style="width: 220px"
               @input="fetchData"
             />
-            <el-button type="primary" @click="$router.push('/workflow/create')">
+            <el-button type="primary" @click="handleCreate">
               <el-icon><Plus /></el-icon> 新建任务
             </el-button>
           </div>
@@ -72,21 +72,45 @@
         </el-table-column>
       </el-table>
     </el-card>
+
+    <!-- Create Workflow Dialog -->
+    <el-dialog v-model="createDialogVisible" title="新建工作流" width="520px" :close-on-click-modal="false">
+      <el-form label-position="top">
+        <el-form-item label="工作流名称" required>
+          <el-input v-model="createForm.name" placeholder="输入工作流名称" />
+        </el-form-item>
+        <el-form-item label="任务描述">
+          <el-input v-model="createForm.description" placeholder="请输入任务描述" maxlength="200" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleCreateConfirm" :loading="creating">确认</el-button>
+      </template>
+    </el-dialog>
   </Layout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Layout from '@/components/common/Layout.vue'
 import { useWorkflowStore } from '@/stores/workflow'
-import { publishWorkflow, runWorkflow, unpublishWorkflow } from '@/api/workflow'
+import { createWorkflow, publishWorkflow, runWorkflow, unpublishWorkflow } from '@/api/workflow'
 import type { WorkflowDefinition } from '@/types'
 
+const router = useRouter()
 const store = useWorkflowStore()
 
 const loading = ref(false)
+const creating = ref(false)
 const searchName = ref('')
+const createDialogVisible = ref(false)
+const createForm = reactive({
+  name: '',
+  description: '',
+})
 
 const filteredList = computed(() => {
   const q = searchName.value.trim().toLowerCase()
@@ -95,6 +119,35 @@ const filteredList = computed(() => {
 })
 
 onMounted(() => fetchData())
+
+function handleCreate() {
+  createForm.name = ''
+  createForm.description = ''
+  createDialogVisible.value = true
+}
+
+async function handleCreateConfirm() {
+  if (!createForm.name.trim()) {
+    ElMessage.warning('请输入工作流名称')
+    return
+  }
+
+  creating.value = true
+  try {
+    const res = await createWorkflow({
+      name: createForm.name.trim(),
+      description: createForm.description.trim() || undefined,
+    })
+    createDialogVisible.value = false
+    ElMessage.success('工作流已创建')
+    await fetchData()
+    router.push(`/workflow/${res.data.id}/edit`)
+  } catch (e: any) {
+    ElMessage.error(e.message || '创建失败')
+  } finally {
+    creating.value = false
+  }
+}
 
 async function fetchData() {
   loading.value = true

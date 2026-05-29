@@ -14,6 +14,13 @@
               class="name-input"
               :disabled="isPublished"
             />
+            <el-input
+              v-model="workflowDescription"
+              placeholder="任务描述（选填）"
+              class="desc-input"
+              :disabled="isPublished"
+              maxlength="200"
+            />
             <el-tag v-if="isPublished" type="success" effect="light" size="small">已发布</el-tag>
             <el-tag v-else type="info" effect="light" size="small">草稿</el-tag>
           </div>
@@ -277,6 +284,7 @@ const loading = ref(false)
 const saving = ref(false)
 const flowError = ref(false)
 const workflowName = ref('')
+const workflowDescription = ref('')
 const selectedNodeId = ref<string | null>(null)
 const canvasWrapperRef = ref<HTMLDivElement | null>(null)
 const showCompatDialog = ref(false)
@@ -347,6 +355,7 @@ onMounted(async () => {
   if (isCreateMode.value) {
     store.resetDag()
     workflowName.value = ''
+    workflowDescription.value = ''
   }
 
   try {
@@ -389,6 +398,7 @@ async function loadWorkflow(id: number) {
 
     await store.fetchWorkflow(id)
     workflowName.value = store.currentWorkflow?.name ?? ''
+    workflowDescription.value = store.currentWorkflow?.description ?? ''
   } catch (e: any) {
     ElMessage.error(e.message || '加载工作流失败')
   } finally {
@@ -505,7 +515,7 @@ async function handleSave() {
 
   saving.value = true
   try {
-    await store.saveWorkflow({ name: workflowName.value })
+    await store.saveWorkflow({ name: workflowName.value, description: workflowDescription.value || undefined })
     ElMessage.success(isCreateMode.value ? '工作流创建成功' : '工作流保存成功')
 
     if (isCreateMode.value && store.currentWorkflow?.id) {
@@ -579,6 +589,11 @@ async function handleRun() {
 
 .name-input {
   flex: 1;
+}
+
+.desc-input {
+  flex: 1;
+  font-size: 13px;
 }
 
 .unsaved-badge {
