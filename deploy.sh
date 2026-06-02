@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 # ============================================
 # IDATA 部署脚本 - 构建前端 & 后端
@@ -25,13 +25,11 @@ echo ""
 echo "[1/3] 构建前端..."
 cd "${FRONTEND_DIR}"
 
-if [ ! -d "node_modules" ]; then
-    echo "  → 安装前端依赖..."
-    npm install
-fi
+echo "  → 安装前端依赖..."
+npm install --no-audit --no-fund 2>&1 | tail -3
 
-echo "  → Vite 打包..."
-npx vite build
+echo "  → Vite 打包中..."
+./node_modules/.bin/vite build 2>&1 || { echo "  ✗ 前端构建失败"; exit 1; }
 echo "  ✓ 前端构建完成: ${FRONTEND_DIR}/dist/"
 
 # ---- 2. 构建后端 ----
@@ -47,7 +45,8 @@ if [ "${MODE}" = "prod" ]; then
     echo "  → 前端产物已拷贝到 ${STATIC_DIR}"
 fi
 
-mvn clean package -DskipTests -q
+echo "  → Maven 打包中..."
+mvn clean package -DskipTests -q 2>&1 || { echo "  ✗ 后端构建失败"; exit 1; }
 JAR_FILE=$(ls "${BACKEND_DIR}/target/${APP_NAME}-backend-"*.jar 2>/dev/null | head -1)
 echo "  ✓ 后端构建完成: ${JAR_FILE}"
 
