@@ -13,15 +13,45 @@ BACKEND_DIR="${PROJECT_ROOT}/backend"
 FRONTEND_DIR="${PROJECT_ROOT}/frontend"
 DEPLOY_DIR="${PROJECT_ROOT}/deploy"
 
+# ---- 环境检测 ----
+check_env() {
+    # 检查可用内存
+    local mem_mb=0
+    if command -v free &>/dev/null; then
+        mem_mb=$(free -m | awk '/^Mem:/{print $7}')
+    elif command -v vm_stat &>/dev/null; then
+        mem_mb=$(vm_stat | awk '/free/{print $3}' | sed 's/\..*//' 2>/dev/null || echo "0")
+        mem_mb=$((mem_mb / 256))
+    fi
+
+    if [ "$mem_mb" -gt 0 ] && [ "$mem_mb" -lt 1024 ]; then
+        echo "  ⚠ 可用内存 ${mem_mb}MB，Vite 构建可能需要较长时间"
+        echo "    若卡死可中断后使用: bash deploy.sh backend (跳过后端的前端构建)"
+    fi
+}
+
 # ---- 前端构建 ----
 build_frontend() {
+    check_env
+
     echo "  → 安装前端依赖..."
     cd "${FRONTEND_DIR}"
     npm install --no-audit --no-fund 2>&1 | tail -3
 
     echo "  → Vite 打包中..."
-    NODE_OPTIONS="--max-old-space-size=2048" ./node_modules/.bin/vite build 2>&1 || {
+    # 根据可用内存动态调整 Node 内存限制
+    local max_mem=2048
+    if command -v free &>/dev/null; then
+        local total_mem
+        total_mem=$(free -m | awk '/^Mem:/{print $2}')
+        if [ "$total_mem" -gt 0 ] && [ "$total_mem" -lt 2048 ]; then
+            max_mem=$((total_mem * 3 / 4))
+        fi
+    fi
+
+    NODE_OPTIONS="--max-old-space-size=${max_mem}" ./node_modules/.bin/vite build 2>&1 || {
         echo "  ✗ 前端构建失败"
+        echo "  提示: 可在本地构建前端后，将 dist/ 目录传到服务器，再用 bash deploy.sh backend"
         return 1
     }
     echo "  ✓ 前端构建完成: ${FRONTEND_DIR}/dist/"
