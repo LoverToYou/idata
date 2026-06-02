@@ -374,6 +374,7 @@ import { listTasks, getTask, createTask, updateTask, deleteTask, publishTask, un
 import { getSqlKeywords, detectGrammarContext, getCachedGrammarContext, setCachedGrammarContext } from '@/api/grammar'
 import type { SqlKeywords } from '@/api/grammar'
 import type { DatasourceConfig } from '@/types'
+import type { SqlTaskRequest } from '@/api/sql-task'
 import type { SqlExecuteResult, ExplainPlanResult, SqlAnalysis, SqlSuggestion } from '@/api/sql'
 import { resolveParams } from '@/api/parameter'
 import * as monaco from 'monaco-editor'
@@ -405,7 +406,7 @@ async function handleBackToList(skipSave = false) {
       try {
         const updatePayload: Record<string, any> = { id: currentTaskId.value, name, sqlContent: sql, datasourceId: selectedDatasource.value || null }
         if (currentTask.value?.description) updatePayload.description = currentTask.value.description
-        await updateTask(updatePayload)
+        await updateTask(updatePayload as SqlTaskRequest)
         dirty.value = false
         await loadTasks()
         ElMessage.success('任务已自动保存')
@@ -602,10 +603,10 @@ async function handleSave(silent = false) {
       payload.description = currentTask.value.description
     }
     if (currentTaskId.value) {
-      await updateTask({ ...payload, id: currentTaskId.value })
+      await updateTask({ ...payload, id: currentTaskId.value } as SqlTaskRequest)
       if (!silent) ElMessage.success('任务已更新')
     } else {
-      const res = await createTask(payload)
+      const res = await createTask(payload as SqlTaskRequest)
       currentTaskId.value = res.data.id
       currentTask.value = res.data
       if (!silent) ElMessage.success('任务已创建')
@@ -1002,7 +1003,7 @@ onBeforeUnmount(async () => {
     if (name) {
       const unmountPayload: Record<string, any> = { id: currentTaskId.value, name, sqlContent: sql, datasourceId: selectedDatasource.value || null }
       if (currentTask.value?.description) unmountPayload.description = currentTask.value.description
-      try { await updateTask(unmountPayload) } catch { /* ignore */ }
+      try { await updateTask(unmountPayload as SqlTaskRequest) } catch { /* ignore */ }
     }
   }
   stopAutoSave()
@@ -1166,7 +1167,7 @@ function handleFormat() {
     const language = ds?.type === 'HIVE' ? 'hive' : 'mysql'
     const formatted = formatSql(sql, {
       language,
-      uppercase: true,
+      keywordCase: 'upper',
       tabWidth: 2,
       linesBetweenQueries: 2,
     })

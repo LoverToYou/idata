@@ -138,7 +138,7 @@
                     :value="task.id"
                   >
                     <span>{{ task.name }}</span>
-                    <el-tag v-if="task.sqlType" size="small" style="margin-left: 6px">{{ task.sqlType }}</el-tag>
+                    <el-tag v-if="(task as any).sqlType" size="small" style="margin-left: 6px">{{ (task as any).sqlType }}</el-tag>
                   </el-option>
                 </el-select>
               </el-form-item>

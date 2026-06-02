@@ -399,7 +399,7 @@ function showDetail(row: any) {
 
 // --- Node Logs ---
 const logsVisible = ref(false)
-const nodeLogs = ref<InstanceNodeLog[]>([])
+const nodeLogs = ref<(InstanceNodeLog & { _showDataxJson?: boolean; _showOutputLog?: boolean })[]>([])
 
 async function showNodeLogs(row: any) {
   logsVisible.value = true

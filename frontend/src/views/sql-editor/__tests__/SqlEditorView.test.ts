@@ -58,13 +58,14 @@ vi.mock('monaco-editor', () => ({
 vi.mock('@/api/datasource', () => ({
   listDatasources: vi.fn().mockResolvedValue({
     code: 200,
+    message: 'ok',
     data: [mockDatasource],
   }),
-  testConnectionById: vi.fn().mockResolvedValue({ code: 200, data: true }),
-  listDatasourceTables: vi.fn().mockResolvedValue({ code: 200, data: [] }),
-  getDatasourceTableColumns: vi.fn().mockResolvedValue({ code: 200, data: [] }),
-  listAccessibleDatabases: vi.fn().mockResolvedValue({ code: 200, data: [] }),
-  listDatasourceDatabases: vi.fn().mockResolvedValue({ code: 200, data: [] }),
+  testConnectionById: vi.fn().mockResolvedValue({ code: 200, message: 'ok', data: true }),
+  listDatasourceTables: vi.fn().mockResolvedValue({ code: 200, message: 'ok', data: [] }),
+  getDatasourceTableColumns: vi.fn().mockResolvedValue({ code: 200, message: 'ok', data: [] }),
+  listAccessibleDatabases: vi.fn().mockResolvedValue({ code: 200, message: 'ok', data: [] }),
+  listDatasourceDatabases: vi.fn().mockResolvedValue({ code: 200, message: 'ok', data: [] }),
 }))
 
 vi.mock('@/api/sql-task', () => ({
@@ -72,9 +73,9 @@ vi.mock('@/api/sql-task', () => ({
   getTask: (id: number) => mockGetTask(id),
   createTask: (data: any) => mockCreateTask(data),
   updateTask: (data: any) => mockUpdateTask(data),
-  deleteTask: vi.fn().mockResolvedValue({ code: 200, data: null }),
-  publishTask: vi.fn().mockResolvedValue({ code: 200, data: { id: 1, status: 'PUBLISHED' } }),
-  unpublishTask: vi.fn().mockResolvedValue({ code: 200, data: { id: 1, status: 'DRAFT' } }),
+  deleteTask: vi.fn().mockResolvedValue({ code: 200, message: 'ok', data: null }),
+  publishTask: vi.fn().mockResolvedValue({ code: 200, message: 'ok', data: { id: 1, status: 'PUBLISHED' } }),
+  unpublishTask: vi.fn().mockResolvedValue({ code: 200, message: 'ok', data: { id: 1, status: 'DRAFT' } }),
 }))
 
 vi.mock('@/api/sql', () => ({
@@ -94,7 +95,7 @@ vi.mock('@/api/grammar', () => ({
 import SqlEditorView from '../SqlEditorView.vue'
 
 function createWrapper() {
-  return shallowMount(SqlEditorView, {
+  const wrapper = shallowMount(SqlEditorView, {
     global: {
       stubs: {
         Layout: { template: '<div><slot /></div>' },
@@ -102,12 +103,13 @@ function createWrapper() {
       },
     },
   })
+  return Object.assign(wrapper, { vm: wrapper.vm as Record<string, any> })
 }
 
 describe('SqlEditorView - SQL任务创建与编辑', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockListTasks.mockResolvedValue({ code: 200, data: [] })
+    mockListTasks.mockResolvedValue({ code: 200, message: 'ok', data: [] })
   })
 
   it('取消创建 - 打开对话框后取消，停留在列表模式', async () => {
@@ -144,6 +146,7 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
 
     mockCreateTask.mockResolvedValue({
       code: 200,
+      message: 'ok',
       data: { id: 42, name: '测试SQL任务', sqlContent: '' },
     })
 
@@ -184,6 +187,7 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
 
     mockCreateTask.mockResolvedValue({
       code: 200,
+      message: 'ok',
       data: { id: 42, name: '测试SQL任务', sqlContent: '' },
     })
 
@@ -212,6 +216,7 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
 
     mockUpdateTask.mockResolvedValue({
       code: 200,
+      message: 'ok',
       data: { id: 42, name: '测试SQL任务', sqlContent: editedSql },
     })
 
@@ -239,6 +244,7 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
 
     mockCreateTask.mockResolvedValue({
       code: 200,
+      message: 'ok',
       data: { id: 1, name: 'test', sqlContent: '' },
     })
 
@@ -285,7 +291,7 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
       datasourceId: 1,
       status: 'DRAFT',
     }
-    mockGetTask.mockResolvedValue({ code: 200, data: taskDetail })
+    mockGetTask.mockResolvedValue({ code: 200, message: 'ok', data: taskDetail })
 
     // 模拟表格中双击/点击编辑
     wrapper.vm.handleEditTask({ id: 10, name: '已有任务' })
@@ -312,8 +318,8 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
       datasourceId: 1,
       status: 'DRAFT',
     }
-    mockGetTask.mockResolvedValue({ code: 200, data: taskDetail })
-    mockUpdateTask.mockResolvedValue({ code: 200, data: { id: 10 } })
+    mockGetTask.mockResolvedValue({ code: 200, message: 'ok', data: taskDetail })
+    mockUpdateTask.mockResolvedValue({ code: 200, message: 'ok', data: { id: 10 } })
 
     wrapper.vm.handleEditTask({ id: 10, name: '已有任务' })
     await flushPromises()
@@ -347,8 +353,8 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
       datasourceId: 1,
       status: 'DRAFT',
     }
-    mockGetTask.mockResolvedValue({ code: 200, data: taskDetail })
-    mockUpdateTask.mockResolvedValue({ code: 200, data: { id: 20 } })
+    mockGetTask.mockResolvedValue({ code: 200, message: 'ok', data: taskDetail })
+    mockUpdateTask.mockResolvedValue({ code: 200, message: 'ok', data: { id: 20 } })
 
     wrapper.vm.handleEditTask({ id: 20, name: 'test' })
     await flushPromises()
@@ -376,15 +382,17 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
     const { listDatasourceDatabases } = await import('@/api/datasource')
     vi.mocked(listDatasourceDatabases).mockResolvedValue({
       code: 200,
+      message: 'ok',
       data: ['test', 'mysql'],
     })
 
     vi.mocked(listDatasourceTables)
       // first call: default tables (no database param)
-      .mockResolvedValueOnce({ code: 200, data: [] })
+      .mockResolvedValueOnce({ code: 200, message: 'ok', data: [] })
       // second call: test db tables
       .mockResolvedValueOnce({
         code: 200,
+        message: 'ok',
         data: [
           { tableSchema: 'test', tableName: 'orders' },
           { tableSchema: 'test', tableName: 'users' },
@@ -394,6 +402,7 @@ describe('SqlEditorView - SQL任务创建与编辑', () => {
       // third call: mysql db tables
       .mockResolvedValueOnce({
         code: 200,
+        message: 'ok',
         data: [
           { tableSchema: 'mysql', tableName: 'help_topic' },
           { tableSchema: 'mysql', tableName: 'time_zone' },
