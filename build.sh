@@ -41,12 +41,11 @@ build_backend() {
 
     echo "  → Maven 打包中..."
     mvn clean package -DskipTests -q 2>&1 || {
-        echo "  ✗ 后端构建失败"
+        echo "  ✗ 后端构建失败" >&2
         return 1
     }
     local jar
     jar=$(ls "${BACKEND_DIR}/target/${APP_NAME}-backend-"*.jar 2>/dev/null | head -1)
-    echo "  ✓ 后端构建完成: ${jar}"
     echo "${jar}"
 }
 
@@ -83,7 +82,11 @@ build_backend_only() {
     fi
 
     local jar
-    jar=$(build_backend false) || return 1
+    jar=$(build_backend false | tail -1 | xargs) || return 1
+    if [ -z "${jar}" ] || [ ! -f "${jar}" ]; then
+        echo "  ✗ 未找到构建产物 jar" >&2
+        return 1
+    fi
     package "${jar}"
 }
 
@@ -91,7 +94,11 @@ build_backend_only() {
 build_dev() {
     build_frontend || return 1
     local jar
-    jar=$(build_backend false) || return 1
+    jar=$(build_backend false | tail -1 | xargs) || return 1
+    if [ -z "${jar}" ] || [ ! -f "${jar}" ]; then
+        echo "  ✗ 未找到构建产物 jar" >&2
+        return 1
+    fi
     package "${jar}"
 }
 
@@ -99,7 +106,11 @@ build_dev() {
 build_prod() {
     build_frontend || return 1
     local jar
-    jar=$(build_backend true) || return 1
+    jar=$(build_backend true | tail -1 | xargs) || return 1
+    if [ -z "${jar}" ] || [ ! -f "${jar}" ]; then
+        echo "  ✗ 未找到构建产物 jar" >&2
+        return 1
+    fi
     package "${jar}"
 }
 
