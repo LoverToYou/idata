@@ -30,14 +30,6 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
-echo "  → 类型检查（30s超时，失败不影响构建）..."
-npx vue-tsc --noEmit --skipLibCheck &
-TSC_PID=$!
-(sleep 30 && kill $TSC_PID 2>/dev/null) &
-TIMER_PID=$!
-wait $TSC_PID 2>/dev/null && echo "  ✓ 类型检查通过" || echo "  → 类型检查超时/失败（已跳过）"
-kill $TIMER_PID 2>/dev/null
-
 echo "  → Vite 打包..."
 npx vite build
 echo "  ✓ 前端构建完成: ${FRONTEND_DIR}/dist/"
