@@ -29,7 +29,7 @@ echo "  → 安装前端依赖..."
 npm install --no-audit --no-fund 2>&1 | tail -3
 
 echo "  → Vite 打包中..."
-./node_modules/.bin/vite build 2>&1 || { echo "  ✗ 前端构建失败"; exit 1; }
+NODE_OPTIONS="--max-old-space-size=2048" ./node_modules/.bin/vite build 2>&1 || { echo "  ✗ 前端构建失败"; exit 1; }
 echo "  ✓ 前端构建完成: ${FRONTEND_DIR}/dist/"
 
 # ---- 2. 构建后端 ----
