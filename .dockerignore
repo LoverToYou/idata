@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Java
+backend/target/
+*.class
+*.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+
+# Env
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# Test artifacts
+test-reports/
+test-cases/
+.playwright-mcp/
+home-page
+workflow-list
+snapshot.txt
+table-manager*.png
+workflow-arrow-test*.png
+project-status-snapshot
+editor-toolbar
+
+# Claude
+.claude/
