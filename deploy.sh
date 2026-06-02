@@ -15,6 +15,38 @@ FRONTEND_DIR="${PROJECT_ROOT}/frontend"
 DEPLOY_DIR="${PROJECT_ROOT}/deploy"
 MODE="${1:-dev}"
 
+# 快速模式：跳过前端构建，只打包后端
+build_backend_only() {
+    echo "  快速模式：跳过前端构建"
+    echo ""
+    echo "[1/3] 跳过前端构建（使用已有 dist）..."
+    if [ ! -d "${FRONTEND_DIR}/dist" ]; then
+        echo "  → dist 不存在，执行前端构建..."
+        cd "${FRONTEND_DIR}"
+        npm install --no-audit --no-fund 2>&1 | tail -3
+        NODE_OPTIONS="--max-old-space-size=2048" ./node_modules/.bin/vite build 2>&1 || { echo "  ✗ 前端构建失败"; exit 1; }
+    else
+        echo "  ✓ 前端 dist 已存在"
+    fi
+    echo "  ✓ 前端准备完成"
+}
+
+if [ "${MODE}" = "backend" ]; then
+    build_backend_only
+    # 跳过后端构建步骤的 frontend dist 复制，直接走后端打包
+    cd "${BACKEND_DIR}"
+    echo ""
+    echo "[2/2] Maven 打包中..."
+    mvn clean package -DskipTests -q 2>&1 || { echo "  ✗ 后端构建失败"; exit 1; }
+    JAR_FILE=$(ls "${BACKEND_DIR}/target/${APP_NAME}-backend-"*.jar 2>/dev/null | head -1)
+    echo "  ✓ 后端构建完成: ${JAR_FILE}"
+    mkdir -p "${DEPLOY_DIR}"
+    cp "${JAR_FILE}" "${DEPLOY_DIR}/"
+    cp "${PROJECT_ROOT}/start.sh" "${DEPLOY_DIR}/"
+    echo "  ✓ 部署包已就绪: ${DEPLOY_DIR}/"
+    exit 0
+fi
+
 echo "========================================"
 echo " IDATA 部署脚本"
 echo " 模式: ${MODE}"
