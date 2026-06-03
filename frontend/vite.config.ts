@@ -13,7 +13,7 @@ const monacoPlugin = typeof monacoEditorPlugin === 'function'
 import { resolve } from 'path'
 
 export default defineConfig({
-  base: './',
+  base: '/api/',
   plugins: [
     vue(),
     AutoImport({
