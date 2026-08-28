@@ -33,6 +33,22 @@
           <el-icon><List /></el-icon>
           <span>工作流管理</span>
         </el-menu-item>
+        <el-menu-item index="/schedule">
+          <el-icon><Timer /></el-icon>
+          <span>定时调度</span>
+        </el-menu-item>
+        <el-menu-item index="/python-script">
+          <el-icon><Cpu /></el-icon>
+          <span>Python 脚本</span>
+        </el-menu-item>
+        <el-menu-item index="/udf">
+          <el-icon><MagicStick /></el-icon>
+          <span>UDF 管理</span>
+        </el-menu-item>
+        <el-menu-item index="/files">
+          <el-icon><FolderOpened /></el-icon>
+          <span>文件管理</span>
+        </el-menu-item>
         <el-menu-item index="/monitor">
           <el-icon><Monitoring /></el-icon>
           <span>任务监控</span>
@@ -57,7 +73,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Odometer, Connection, Coin, Document, Share, Monitor as Monitoring, Hide, List } from '@element-plus/icons-vue'
+import { Odometer, Connection, Coin, Document, Share, Monitor as Monitoring, Hide, List, Timer, Cpu, MagicStick, FolderOpened } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const activeRoute = computed(() => route.path)

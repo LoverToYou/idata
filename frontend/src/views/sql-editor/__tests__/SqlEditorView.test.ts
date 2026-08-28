@@ -84,6 +84,7 @@ vi.mock('@/api/sql', () => ({
   explainSql: vi.fn(),
   fullAnalyze: vi.fn(),
   formatSql: vi.fn(),
+  closeSqlSession: vi.fn(),
 }))
 
 vi.mock('@/api/grammar', () => ({

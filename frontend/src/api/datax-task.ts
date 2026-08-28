@@ -1,5 +1,5 @@
 import request from './request'
-import type { ApiResult } from '@/types'
+import type { ApiResult, PageResult } from '@/types'
 
 export interface FieldMapping {
   readerColumn: string
@@ -61,8 +61,15 @@ export interface DataxTaskRequest {
   scriptContent?: string
 }
 
-export function listDataxTasks(): Promise<ApiResult<DataxTask[]>> {
-  return request.get('/datax-task/list')
+export function listDataxTasks(keyword?: string): Promise<ApiResult<DataxTask[]>> {
+  const params = keyword ? { keyword } : {}
+  return request.get('/datax-task/list', { params })
+}
+
+export function listDataxTasksPage(keyword?: string, page: number = 1, pageSize: number = 10): Promise<ApiResult<PageResult<DataxTask>>> {
+  const params: Record<string, any> = { page, pageSize }
+  if (keyword) params.keyword = keyword
+  return request.get('/datax-task/page', { params })
 }
 
 export function getDataxTask(id: number): Promise<ApiResult<DataxTask>> {
@@ -79,6 +86,10 @@ export function updateDataxTask(data: DataxTaskRequest): Promise<ApiResult<Datax
 
 export function deleteDataxTask(id: number): Promise<ApiResult<null>> {
   return request.delete(`/datax-task/${id}`)
+}
+
+export function deleteDataxTaskBatch(ids: number[]): Promise<ApiResult<null>> {
+  return request.delete('/datax-task/batch', { data: ids })
 }
 
 export function publishDataxTask(id: number): Promise<ApiResult<DataxTask>> {

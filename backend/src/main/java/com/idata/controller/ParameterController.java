@@ -1,6 +1,7 @@
 package com.idata.controller;
 
 import com.idata.common.Result;
+import com.idata.dto.PageResult;
 import com.idata.dto.ParameterRequest;
 import com.idata.dto.ParameterVO;
 import com.idata.service.sql.ParameterService;
@@ -25,8 +26,16 @@ public class ParameterController {
     }
 
     @GetMapping("/list")
-    public Result<List<ParameterVO>> list() {
-        return Result.success(parameterService.listAll());
+    public Result<List<ParameterVO>> list(@RequestParam(required = false) String keyword) {
+        return Result.success(parameterService.listAll(keyword));
+    }
+
+    @GetMapping("/page")
+    public Result<PageResult<ParameterVO>> page(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(parameterService.listPage(keyword, page, pageSize));
     }
 
     @GetMapping("/{id}")
@@ -47,6 +56,12 @@ public class ParameterController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         parameterService.delete(id);
+        return Result.success();
+    }
+
+    @DeleteMapping("/batch")
+    public Result<Void> deleteBatch(@RequestBody List<Long> ids) {
+        parameterService.deleteBatch(ids);
         return Result.success();
     }
 

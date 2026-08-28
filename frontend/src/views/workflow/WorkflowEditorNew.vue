@@ -211,6 +211,60 @@
               <el-icon><Delete /></el-icon> 删除节点
             </el-button>
           </div>
+          <div v-show="configPanel === 'python_script'">
+            <div class="panel-header">
+              <h3 class="panel-title">Python 脚本配置</h3>
+            </div>
+
+            <el-form label-position="top" size="small">
+              <el-form-item label="节点名称">
+                <el-input
+                  :model-value="selectedNode?.label"
+                  @update:model-value="onNodeLabelChange"
+                  placeholder="请输入节点名称"
+                />
+              </el-form-item>
+
+              <el-form-item label="选择 Python 脚本">
+                <el-select
+                  :model-value="pythonScriptConfig?.pythonScriptId"
+                  @update:model-value="onPythonScriptChange"
+                  placeholder="选择已发布的 Python 脚本"
+                  filterable
+                  clearable
+                  style="width: 100%"
+                >
+                  <el-option
+                    v-for="s in publishedPythonScripts"
+                    :key="s.id"
+                    :label="s.name"
+                    :value="s.id"
+                  />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="参数（写入脚本 stdin，可选）">
+                <el-input
+                  :model-value="pythonScriptConfig?.params"
+                  @update:model-value="onPythonScriptParamsChange"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="留空则传空串"
+                />
+              </el-form-item>
+
+              <template v-if="selectedPythonScript">
+                <el-form-item label="脚本内容预览">
+                  <pre class="sql-preview">{{ selectedPythonScript.content?.slice(0, 500) }}</pre>
+                </el-form-item>
+              </template>
+            </el-form>
+
+            <el-divider />
+            <el-button type="danger" size="small" @click="deleteSelectedNode">
+              <el-icon><Delete /></el-icon> 删除节点
+            </el-button>
+          </div>
         </div>
       </div>
     </div>
@@ -222,9 +276,11 @@ import { ref, computed, reactive, onMounted, onErrorCaptured, watch, markRaw } f
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import Layout from '@/components/common/Layout.vue'
-import { useWorkflowStore, type DataxConfig, type SqlTaskConfig } from '@/stores/workflow'
+import { useWorkflowStore, type DataxConfig, type PythonScriptConfig, type SqlTaskConfig } from '@/stores/workflow'
 import { listTasks, type SqlTask } from '@/api/sql-task'
 import { listDataxTasks, type DataxTask } from '@/api/datax-task'
+import { listScripts } from '@/api/python-script'
+import type { PythonScript } from '@/types'
 import { runWorkflow, getWorkflow } from '@/api/workflow'
 
 import { VueFlow, MarkerType, type Connection, type NodeMouseEvent } from '@vue-flow/core'
@@ -232,6 +288,7 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import SqlTaskNodeComponent from '@/components/dag/SqlTaskNode.vue'
 import DataxNodeComponent from '@/components/dag/DataxNode.vue'
+import PythonScriptNodeComponent from '@/components/dag/PythonScriptNode.vue'
 
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
@@ -262,6 +319,7 @@ const flowEdges = computed({
 const nodeTypes: Record<string, any> = {
   sqlTaskNode: markRaw(SqlTaskNodeComponent),
   dataxNode: markRaw(DataxNodeComponent),
+  pythonScriptNode: markRaw(PythonScriptNodeComponent),
 }
 
 const defaultEdgeOptions = {
@@ -269,7 +327,7 @@ const defaultEdgeOptions = {
 }
 
 interface NodeTemplate {
-  nodeType: 'sql_task' | 'datax'
+  nodeType: 'sql_task' | 'datax' | 'python_script'
   label: string
   icon: string
 }
@@ -277,6 +335,7 @@ interface NodeTemplate {
 const nodeTemplates: NodeTemplate[] = [
   { nodeType: 'sql_task', label: 'SQL 任务', icon: 'Document' },
   { nodeType: 'datax', label: 'ETL 任务', icon: 'Share' },
+  { nodeType: 'python_script', label: 'Python 脚本', icon: 'Cpu' },
 ]
 
 // ============ State ============
@@ -314,6 +373,18 @@ const selectedSqlTask = computed(() => {
   return allSqlTasks.value.find((t) => t.id === id) ?? null
 })
 
+// ============ Python Scripts ============
+const allPythonScripts = ref<PythonScript[]>([])
+const publishedPythonScripts = computed(() =>
+  allPythonScripts.value.filter((s) => s.status === 'PUBLISHED'),
+)
+
+const selectedPythonScript = computed(() => {
+  const id = pythonScriptConfig.value?.pythonScriptId
+  if (!id) return null
+  return allPythonScripts.value.find((s) => s.id === id) ?? null
+})
+
 // ============ Computed ============
 const isPublished = computed(() => store.currentWorkflow?.status === 'PUBLISHED')
 const canRun = computed(() => store.currentWorkflow?.status === 'PUBLISHED' && !!store.currentWorkflow?.id)
@@ -340,6 +411,11 @@ const sqlTaskConfig = computed<SqlTaskConfig | null>(() => {
   return selectedNodeData.value?.config as SqlTaskConfig
 })
 
+const pythonScriptConfig = computed<PythonScriptConfig | null>(() => {
+  if (selectedNodeData.value?.nodeType !== 'python_script') return null
+  return selectedNodeData.value?.config as PythonScriptConfig
+})
+
 // ============ Error Boundary ============
 onErrorCaptured((err: Error) => {
   console.error('[WorkflowEditor] Caught error:', err)
@@ -359,12 +435,14 @@ onMounted(async () => {
   }
 
   try {
-    const [sqlRes, dataxRes] = await Promise.all([
+    const [sqlRes, dataxRes, pyRes] = await Promise.all([
       listTasks(),
       listDataxTasks(),
+      listScripts(),
     ])
     allSqlTasks.value = sqlRes.data
     allDataxTasks.value = dataxRes.data
+    allPythonScripts.value = pyRes.data
   } catch { /* ignore */ }
 
   if (!isCreateMode.value && workflowId.value) {
@@ -499,6 +577,24 @@ function onDataxTaskChange(val: number | null) {
       selectedNode.value.label = task.name
     }
   }
+}
+
+// ============ Python Script Config ============
+function onPythonScriptChange(val: number | null) {
+  if (!selectedNodeId.value) return
+  store.updateNodeConfig(selectedNodeId.value, { pythonScriptId: val } as any)
+  // Auto-name the node
+  if (val) {
+    const script = allPythonScripts.value.find((s) => s.id === val)
+    if (script && selectedNode.value) {
+      selectedNode.value.label = script.name
+    }
+  }
+}
+
+function onPythonScriptParamsChange(val: string) {
+  if (!selectedNodeId.value) return
+  store.updateNodeConfig(selectedNodeId.value, { params: val } as any)
 }
 
 function formatDataxEndpoint(dsId: number | null | undefined, db: string | undefined | null, table: string | undefined | null): string {
@@ -679,6 +775,15 @@ async function handleRun() {
 .node-template-card.datax:hover {
   background: #fff7e6;
   border-color: #ffd591;
+}
+
+.node-template-card.python_script {
+  border-left: 3px solid #13c2c2;
+}
+
+.node-template-card.python_script:hover {
+  background: #e6fffb;
+  border-color: #87e8de;
 }
 
 /* ===== Canvas (Center) ===== */

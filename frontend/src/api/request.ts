@@ -7,6 +7,10 @@ const request = axios.create({
 
 request.interceptors.response.use(
   (response) => {
+    // 下载接口返回二进制流，无 code 包装，直接返回原始响应
+    if (response.data instanceof Blob) {
+      return response
+    }
     const res = response.data
     if (res.code !== 200) {
       return Promise.reject(new Error(res.message || '请求失败'))

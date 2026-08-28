@@ -4,6 +4,7 @@ import com.idata.common.Result;
 import com.idata.dto.ConnectionTestRequest;
 import com.idata.dto.DatasourceRequest;
 import com.idata.dto.DatasourceVO;
+import com.idata.dto.PageResult;
 import com.idata.service.datasource.DatasourceService;
 import com.idata.service.datasource.HiveMetaService;
 import com.idata.service.datasource.JdbcMetaService;
@@ -30,8 +31,16 @@ public class DatasourceController {
     }
 
     @GetMapping("/list")
-    public Result<List<DatasourceVO>> list() {
-        return Result.success(datasourceService.listAll());
+    public Result<List<DatasourceVO>> list(@RequestParam(required = false) String keyword) {
+        return Result.success(datasourceService.listAll(keyword));
+    }
+
+    @GetMapping("/page")
+    public Result<PageResult<DatasourceVO>> page(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(datasourceService.listPage(keyword, page, pageSize));
     }
 
     @GetMapping("/{id}")
@@ -52,6 +61,12 @@ public class DatasourceController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         datasourceService.delete(id);
+        return Result.success();
+    }
+
+    @DeleteMapping("/batch")
+    public Result<Void> deleteBatch(@RequestBody List<Long> ids) {
+        datasourceService.deleteBatch(ids);
         return Result.success();
     }
 

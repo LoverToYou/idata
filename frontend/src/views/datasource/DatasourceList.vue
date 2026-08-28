@@ -4,13 +4,32 @@
       <template #header>
         <div class="card-header">
           <span>数据源列表</span>
-          <el-button type="primary" @click="$router.push('/datasource/create')">
-            <el-icon><Plus /></el-icon> 新建数据源
-          </el-button>
+          <div class="header-actions">
+            <el-input
+              v-model="keyword"
+              placeholder="搜索数据源名称..."
+              clearable
+              style="width: 240px; margin-right: 12px"
+              @clear="handleSearch"
+              @keyup.enter="handleSearch"
+            />
+            <el-button @click="handleSearch">搜索</el-button>
+            <el-button
+              v-if="selectedIds.length > 0"
+              type="danger"
+              @click="handleBatchDelete"
+            >
+              <el-icon><Delete /></el-icon> 批量删除 ({{ selectedIds.length }})
+            </el-button>
+            <el-button type="primary" @click="$router.push('/datasource/create')">
+              <el-icon><Plus /></el-icon> 新建数据源
+            </el-button>
+          </div>
         </div>
       </template>
 
-      <el-table :data="datasources" stripe v-loading="loading">
+      <el-table :data="datasources" stripe v-loading="loading" @selection-change="onSelectionChange">
+        <el-table-column type="selection" width="50" />
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="名称" min-width="150" />
         <el-table-column prop="type" label="类型" width="100">
@@ -46,6 +65,19 @@
           </template>
         </el-table-column>
       </el-table>
+      <el-pagination
+        v-if="total > 0"
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[5, 10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        background
+        small
+        style="margin-top: 16px; justify-content: flex-end;"
+        @current-change="handlePageChange"
+        @size-change="handlePageChange"
+      />
     </el-card>
   </Layout>
 </template>
@@ -54,22 +86,41 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Layout from '@/components/common/Layout.vue'
-import { listDatasources, deleteDatasource, testConnectionById } from '@/api/datasource'
+import { listDatasources, listDatasourcesPage, deleteDatasource, deleteDatasourceBatch, testConnectionById } from '@/api/datasource'
 import type { DatasourceConfig } from '@/types'
 
 const datasources = ref<DatasourceConfig[]>([])
 const loading = ref(false)
+const keyword = ref('')
+const selectedIds = ref<number[]>([])
+const page = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 onMounted(() => fetchData())
+
+function onSelectionChange(rows: DatasourceConfig[]) {
+  selectedIds.value = rows.map(r => r.id)
+}
 
 async function fetchData() {
   loading.value = true
   try {
-    const res = await listDatasources()
-    datasources.value = res.data
+    const res = await listDatasourcesPage(keyword.value || undefined, page.value, pageSize.value)
+    datasources.value = res.data.data
+    total.value = res.data.total
   } finally {
     loading.value = false
   }
+}
+
+function handlePageChange() {
+  fetchData()
+}
+
+function handleSearch() {
+  page.value = 1
+  fetchData()
 }
 
 async function testConn(row: DatasourceConfig) {
@@ -93,6 +144,21 @@ async function handleDelete(row: DatasourceConfig) {
     }
   }
 }
+
+async function handleBatchDelete() {
+  const count = selectedIds.value.length
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${count} 个数据源吗？`, '提示')
+    await deleteDatasourceBatch(selectedIds.value)
+    ElMessage.success(`成功删除 ${count} 个数据源`)
+    selectedIds.value = []
+    await fetchData()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error(e.message || '批量删除失败')
+    }
+  }
+}
 </script>
 
 <style scoped>
@@ -100,5 +166,10 @@ async function handleDelete(row: DatasourceConfig) {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 </style>

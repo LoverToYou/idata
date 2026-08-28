@@ -19,17 +19,20 @@ COPY --from=frontend-builder /build/frontend/dist ./backend/src/main/resources/s
 RUN mvn -f backend/pom.xml clean package -DskipTests -q
 
 # ---- Stage 3: 运行环境 ----
-FROM eclipse-temurin:17-jre-alpine
+# 使用 JDK：UDF 在线编译需要 jdk.compiler（javax.tools.JavaCompiler）
+FROM eclipse-temurin:17-jdk-alpine
 WORKDIR /app
 
 # 创建非 root 用户
 RUN addgroup -S idata && adduser -S idata -G idata
 
-# 从构建阶段复制 jar 包
+# 从构建阶段复制 jar 包 + UDF 编译 classpath（lib/hive 为 hive 基类、lib/runtime 为运行时依赖）
 COPY --from=backend-builder /build/backend/target/idata-backend-*.jar app.jar
+COPY --from=backend-builder /build/backend/lib/hive /app/lib/hive
+COPY --from=backend-builder /build/backend/lib/runtime /app/lib/runtime
 
-# DataX 配置目录（如需挂载外部 DataX）
-RUN mkdir -p /opt/datax && chown -R idata:idata /opt/datax /app
+# DataX 配置目录（如需挂载外部 DataX）+ UDF 存储目录（生产可把 storage-path 指向 /opt/idata/udf）
+RUN mkdir -p /opt/datax /opt/idata/udf && chown -R idata:idata /opt/datax /opt/idata/udf /app
 
 USER idata
 

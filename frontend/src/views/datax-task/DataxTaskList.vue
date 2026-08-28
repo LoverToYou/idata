@@ -4,14 +4,33 @@
       <template #header>
         <div class="card-header">
           <span>ETL 任务管理</span>
-          <el-button type="primary" @click="handleCreate">
-            <el-icon><Plus /></el-icon> 新建任务
-          </el-button>
+          <div class="header-actions">
+            <el-input
+              v-model="keyword"
+              placeholder="搜索任务名称..."
+              clearable
+              style="width: 240px; margin-right: 12px"
+              @clear="handleSearch"
+              @keyup.enter="handleSearch"
+            />
+            <el-button @click="handleSearch">搜索</el-button>
+            <el-button
+              v-if="selectedIds.length > 0"
+              type="danger"
+              @click="handleBatchDelete"
+            >
+              <el-icon><Delete /></el-icon> 批量删除 ({{ selectedIds.length }})
+            </el-button>
+            <el-button type="primary" @click="handleCreate">
+              <el-icon><Plus /></el-icon> 新建任务
+            </el-button>
+          </div>
         </div>
       </template>
 
-      <el-table :data="tasks" stripe v-loading="loading" @row-dblclick="handleEdit">
-        <el-table-column type="index" label="#" width="60" />
+      <el-table :data="tasks" stripe v-loading="loading" @row-dblclick="handleEdit" @selection-change="onSelectionChange">
+        <el-table-column type="selection" width="50" />
+        <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="name" label="任务名称" min-width="200" />
         <el-table-column label="源端" min-width="150">
           <template #default="{ row }">
@@ -67,6 +86,19 @@
           </template>
         </el-table-column>
       </el-table>
+      <el-pagination
+        v-if="total > 0"
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[5, 10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        background
+        small
+        style="margin-top: 16px; justify-content: flex-end;"
+        @current-change="handlePageChange"
+        @size-change="handlePageChange"
+      />
     </el-card>
 
     <!-- Create Task Dialog -->
@@ -114,8 +146,10 @@ import { useRouter } from 'vue-router'
 import Layout from '@/components/common/Layout.vue'
 import {
   listDataxTasks,
+  listDataxTasksPage,
   createDataxTask,
   deleteDataxTask,
+  deleteDataxTaskBatch,
   publishDataxTask,
   unpublishDataxTask,
   getDataxTaskJson,
@@ -128,6 +162,11 @@ import { Plus } from '@element-plus/icons-vue'
 const router = useRouter()
 const tasks = ref<any[]>([])
 const loading = ref(false)
+const keyword = ref('')
+const selectedIds = ref<number[]>([])
+const page = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 const datasources = ref<DatasourceConfig[]>([])
 const jsonDialogVisible = ref(false)
 const dataxJson = ref('')
@@ -151,13 +190,27 @@ function getDsName(id: number): string {
   return datasources.value.find(ds => ds.id === id)?.name || `#${id}`
 }
 
+function onSelectionChange(rows: any[]) {
+  selectedIds.value = rows.map(r => r.id)
+}
+
+function handleSearch() {
+  page.value = 1
+  loadTasks()
+}
+
 async function loadTasks() {
   loading.value = true
   try {
-    const res = await listDataxTasks()
-    tasks.value = res.data
+    const res = await listDataxTasksPage(keyword.value || undefined, page.value, pageSize.value)
+    tasks.value = res.data.data
+    total.value = res.data.total
   } catch { /* ignore */ }
   finally { loading.value = false }
+}
+
+function handlePageChange() {
+  loadTasks()
 }
 
 function handleCreate() {
@@ -203,6 +256,21 @@ async function handleDelete(task: any) {
     ElMessage.success('已删除')
     await loadTasks()
   } catch { /* cancelled */ }
+}
+
+async function handleBatchDelete() {
+  const count = selectedIds.value.length
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${count} 个任务吗？`, '提示')
+    await deleteDataxTaskBatch(selectedIds.value)
+    ElMessage.success(`成功删除 ${count} 个任务`)
+    selectedIds.value = []
+    await loadTasks()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error(e.message || '批量删除失败')
+    }
+  }
 }
 
 async function handlePublish(task: any) {
@@ -255,6 +323,10 @@ onMounted(async () => {
 .card-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+.header-actions {
+  display: flex;
   align-items: center;
 }
 .conn-info {

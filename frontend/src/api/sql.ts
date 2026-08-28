@@ -49,24 +49,28 @@ export interface SqlAnalysis {
   suggestions: SqlSuggestion[]
 }
 
-export function executeSql(datasourceId: number, sql: string): Promise<ApiResult<SqlExecuteResult>> {
-  return request.post('/sql/execute', { datasourceId, sql })
+export function executeSql(datasourceId: number, sql: string, sessionId?: string): Promise<ApiResult<SqlExecuteResult>> {
+  return request.post('/sql/execute', { datasourceId, sql, sessionId })
 }
 
-export function explainSql(datasourceId: number, sql: string): Promise<ApiResult<ExplainPlanResult>> {
-  return request.post('/sql/explain', { datasourceId, sql })
+export function explainSql(datasourceId: number, sql: string, sessionId?: string): Promise<ApiResult<ExplainPlanResult>> {
+  return request.post('/sql/explain', { datasourceId, sql, sessionId })
+}
+
+export function closeSqlSession(sessionId: string): Promise<ApiResult<null>> {
+  return request.post('/sql/session/close', { sessionId })
 }
 
 export function analyzeSql(sql: string): Promise<ApiResult<{ analysis: SqlAnalysis }>> {
   return request.post('/sql/analyze', { sql })
 }
 
-export function fullAnalyze(datasourceId: number, sql: string): Promise<ApiResult<{
+export function fullAnalyze(datasourceId: number, sql: string, sessionId?: string): Promise<ApiResult<{
   analysis: SqlAnalysis
   plan: ExplainPlanResult
   suggestions: SqlSuggestion[]
 }>> {
-  return request.post('/sql/full-analyze', { datasourceId, sql })
+  return request.post('/sql/full-analyze', { datasourceId, sql, sessionId })
 }
 
 export function formatSql(sql: string): Promise<ApiResult<{ formatted: string }>> {

@@ -1,5 +1,5 @@
 import request from './request'
-import type { ApiResult } from '@/types'
+import type { ApiResult, PageResult } from '@/types'
 
 export interface MaskingRule {
   id: number
@@ -19,8 +19,15 @@ export interface MaskingRuleRequest {
   description?: string
 }
 
-export function listMaskingRules(): Promise<ApiResult<MaskingRule[]>> {
-  return request.get('/masking-rule/list')
+export function listMaskingRules(keyword?: string): Promise<ApiResult<MaskingRule[]>> {
+  const params = keyword ? { keyword } : {}
+  return request.get('/masking-rule/list', { params })
+}
+
+export function listMaskingRulesPage(keyword?: string, page: number = 1, pageSize: number = 10): Promise<ApiResult<PageResult<MaskingRule>>> {
+  const params: Record<string, any> = { page, pageSize }
+  if (keyword) params.keyword = keyword
+  return request.get('/masking-rule/page', { params })
 }
 
 export function getMaskingRule(id: number): Promise<ApiResult<MaskingRule>> {
@@ -37,4 +44,8 @@ export function updateMaskingRule(data: MaskingRuleRequest): Promise<ApiResult<M
 
 export function deleteMaskingRule(id: number): Promise<ApiResult<null>> {
   return request.delete(`/masking-rule/${id}`)
+}
+
+export function deleteMaskingRuleBatch(ids: number[]): Promise<ApiResult<null>> {
+  return request.delete('/masking-rule/batch', { data: ids })
 }

@@ -1,6 +1,7 @@
 package com.idata.controller;
 
 import com.idata.common.Result;
+import com.idata.dto.PageResult;
 import com.idata.dto.WorkflowRequest;
 import com.idata.dto.WorkflowVO;
 import com.idata.entity.NodeExecutionLog;
@@ -26,8 +27,16 @@ public class WorkflowController {
     }
 
     @GetMapping("/list")
-    public Result<List<WorkflowVO>> list() {
-        return Result.success(workflowService.listAll());
+    public Result<List<WorkflowVO>> list(@RequestParam(required = false) String keyword) {
+        return Result.success(workflowService.listAll(keyword));
+    }
+
+    @GetMapping("/page")
+    public Result<PageResult<WorkflowVO>> page(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(workflowService.listPage(keyword, page, pageSize));
     }
 
     @GetMapping("/{id}")
@@ -48,6 +57,12 @@ public class WorkflowController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         workflowService.delete(id);
+        return Result.success();
+    }
+
+    @DeleteMapping("/batch")
+    public Result<Void> deleteBatch(@RequestBody List<Long> ids) {
+        workflowService.deleteBatch(ids);
         return Result.success();
     }
 

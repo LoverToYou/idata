@@ -61,10 +61,17 @@ public class HiveMetaService {
         try (Connection conn = datasourceService.getConnection(datasourceId);
              Statement stmt = conn.createStatement()) {
             stmt.execute("USE " + databaseName);
+            java.util.Set<String> seen = new java.util.HashSet<>();
             try (ResultSet rs = stmt.executeQuery("DESCRIBE " + tableName)) {
                 while (rs.next()) {
+                    String name = rs.getString(1);
+                    // DESCRIBE 输出尾部包含分区信息头(# Partition Information 等),跳过噪声行;
+                    // 分区列会在主列表与分区信息段各出现一次,按名去重
+                    if (name == null || name.isBlank() || name.startsWith("#") || !seen.add(name)) {
+                        continue;
+                    }
                     Map<String, String> col = new HashMap<>();
-                    col.put("name", rs.getString(1));
+                    col.put("name", name);
                     col.put("type", rs.getString(2));
                     col.put("comment", rs.getString(3));
                     columns.add(col);

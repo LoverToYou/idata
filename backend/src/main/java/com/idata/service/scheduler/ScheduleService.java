@@ -2,6 +2,7 @@ package com.idata.service.scheduler;
 
 import com.idata.dto.ScheduleRequest;
 import com.idata.dto.ScheduleVO;
+import com.idata.engine.workflow.DagExecutor;
 import com.idata.entity.ScheduleConfig;
 import com.idata.entity.WorkflowDefinition;
 import com.idata.mapper.ScheduleConfigMapper;
@@ -10,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,11 +22,17 @@ public class ScheduleService {
 
     private final ScheduleConfigMapper scheduleConfigMapper;
     private final WorkflowDefinitionMapper workflowDefinitionMapper;
+    private final WorkflowSchedulerService workflowSchedulerService;
+    private final DagExecutor dagExecutor;
 
     public ScheduleService(ScheduleConfigMapper scheduleConfigMapper,
-                           WorkflowDefinitionMapper workflowDefinitionMapper) {
+                           WorkflowDefinitionMapper workflowDefinitionMapper,
+                           WorkflowSchedulerService workflowSchedulerService,
+                           DagExecutor dagExecutor) {
         this.scheduleConfigMapper = scheduleConfigMapper;
         this.workflowDefinitionMapper = workflowDefinitionMapper;
+        this.workflowSchedulerService = workflowSchedulerService;
+        this.dagExecutor = dagExecutor;
     }
 
     public List<ScheduleVO> listAll() {
@@ -67,6 +73,7 @@ public class ScheduleService {
         config.setCronExpression(req.getCronExpression());
         config.setEnabled(req.getEnabled() != null ? req.getEnabled() : true);
         scheduleConfigMapper.insert(config);
+        workflowSchedulerService.register(config);
         return toVO(config, workflow.getName());
     }
 
@@ -104,6 +111,7 @@ public class ScheduleService {
 
         ScheduleConfig updated = scheduleConfigMapper.selectById(req.getId());
         WorkflowDefinition workflow = workflowDefinitionMapper.selectById(updated.getWorkflowId());
+        workflowSchedulerService.reschedule(updated);
         return toVO(updated, workflow != null ? workflow.getName() : null);
     }
 
@@ -111,6 +119,7 @@ public class ScheduleService {
         if (scheduleConfigMapper.selectById(id) == null) {
             throw new IllegalArgumentException("调度配置不存在: " + id);
         }
+        workflowSchedulerService.remove(id);
         scheduleConfigMapper.deleteById(id);
     }
 
@@ -121,18 +130,26 @@ public class ScheduleService {
         }
         config.setEnabled(enabled);
         scheduleConfigMapper.updateById(config);
+        if (enabled) {
+            workflowSchedulerService.resume(id);
+        } else {
+            workflowSchedulerService.pause(id);
+        }
     }
 
     /**
-     * Stub method for triggering a scheduled workflow.
-     * In the future, this will be invoked by the Quartz scheduler.
+     * Trigger a schedule's workflow once immediately.
+     *
+     * @return the created WorkflowInstance ID
      */
-    public void triggerSchedule(Long id) {
+    public Long triggerSchedule(Long id) {
         ScheduleConfig config = scheduleConfigMapper.selectById(id);
         if (config == null) {
             throw new IllegalArgumentException("调度配置不存在: " + id);
         }
-        log.info("Triggering workflow {} via schedule (cron: {})", config.getWorkflowId(), config.getCronExpression());
+        log.info("Manually triggering schedule {} -> workflow {} (cron: {})",
+                id, config.getWorkflowId(), config.getCronExpression());
+        return dagExecutor.execute(config.getWorkflowId(), "CRON");
     }
 
     private ScheduleVO toVO(ScheduleConfig config, String workflowName) {

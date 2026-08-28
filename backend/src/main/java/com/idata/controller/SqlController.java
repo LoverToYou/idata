@@ -5,6 +5,7 @@ import com.idata.dto.*;
 import com.idata.service.sql.SqlExecutorService;
 import com.idata.service.sql.SqlOptimizerService;
 import com.idata.service.sql.SqlParserService;
+import com.idata.service.sql.SqlSessionManager;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,18 +20,21 @@ public class SqlController {
     private final SqlExecutorService sqlExecutorService;
     private final SqlParserService sqlParserService;
     private final SqlOptimizerService sqlOptimizerService;
+    private final SqlSessionManager sqlSessionManager;
 
     public SqlController(SqlExecutorService sqlExecutorService,
                          SqlParserService sqlParserService,
-                         SqlOptimizerService sqlOptimizerService) {
+                         SqlOptimizerService sqlOptimizerService,
+                         SqlSessionManager sqlSessionManager) {
         this.sqlExecutorService = sqlExecutorService;
         this.sqlParserService = sqlParserService;
         this.sqlOptimizerService = sqlOptimizerService;
+        this.sqlSessionManager = sqlSessionManager;
     }
 
     @PostMapping("/execute")
     public Result<SqlExecuteResult> execute(@Valid @RequestBody SqlExecuteRequest request) {
-        SqlExecuteResult result = sqlExecutorService.execute(request.getDatasourceId(), request.getSql());
+        SqlExecuteResult result = sqlExecutorService.execute(request.getDatasourceId(), request.getSql(), request.getSessionId());
         if (result.getErrorMessage() != null) {
             return Result.error(500, result.getErrorMessage());
         }
@@ -39,8 +43,14 @@ public class SqlController {
 
     @PostMapping("/explain")
     public Result<ExplainPlanResult> explain(@Valid @RequestBody SqlExecuteRequest request) {
-        ExplainPlanResult result = sqlExecutorService.explain(request.getDatasourceId(), request.getSql());
+        ExplainPlanResult result = sqlExecutorService.explain(request.getDatasourceId(), request.getSql(), request.getSessionId());
         return Result.success(result);
+    }
+
+    @PostMapping("/session/close")
+    public Result<Void> closeSession(@RequestBody Map<String, String> body) {
+        sqlSessionManager.close(body == null ? null : body.get("sessionId"));
+        return Result.success();
     }
 
     @PostMapping("/analyze")
@@ -67,7 +77,7 @@ public class SqlController {
         SqlAnalysisResult analysis = sqlParserService.analyze(sql);
 
         // 2. Get EXPLAIN plan
-        ExplainPlanResult plan = sqlExecutorService.explain(datasourceId, sql);
+        ExplainPlanResult plan = sqlExecutorService.explain(datasourceId, sql, request.getSessionId());
 
         // 3. Generate optimization suggestions from plan
         List<SqlSuggestion> planSuggestions = sqlOptimizerService.analyzePlan(plan);

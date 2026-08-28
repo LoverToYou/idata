@@ -3,11 +3,16 @@ server:
   servlet:
     context-path: /api
   tomcat:
-    max-http-form-post-size: 20MB
+    max-http-form-post-size: 110MB
 
 spring:
   application:
     name: idata
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 110MB
 
   datasource:
     url: jdbc:mysql://localhost:3306/idata?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
@@ -42,5 +47,13 @@ logging:
 idata:
   datax:
     home: /opt/datax
+  files:
+    # HDFS NameNode 地址（文件管理模块），如 hdfs://hadoop01:8020
+    hdfs-uri: hdfs://127.0.0.1:9000
+    # HDFS 上文件存储根目录
+    storage-path: /idata/files
   encryption:
     key: idata-secret-key-2024
+  sql-session:
+    idle-timeout: 1800
+    max-sessions: 1000

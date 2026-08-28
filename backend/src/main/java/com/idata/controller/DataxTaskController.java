@@ -3,6 +3,7 @@ package com.idata.controller;
 import com.idata.common.Result;
 import com.idata.dto.DataxTaskRequest;
 import com.idata.dto.DataxTaskVO;
+import com.idata.dto.PageResult;
 import com.idata.service.datax.DataxTaskService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -21,8 +22,16 @@ public class DataxTaskController {
     }
 
     @GetMapping("/list")
-    public Result<List<DataxTaskVO>> list() {
-        return Result.success(dataxTaskService.listAll());
+    public Result<List<DataxTaskVO>> list(@RequestParam(required = false) String keyword) {
+        return Result.success(dataxTaskService.listAll(keyword));
+    }
+
+    @GetMapping("/page")
+    public Result<PageResult<DataxTaskVO>> page(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(dataxTaskService.listPage(keyword, page, pageSize));
     }
 
     @GetMapping("/{id}")
@@ -43,6 +52,12 @@ public class DataxTaskController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         dataxTaskService.delete(id);
+        return Result.success();
+    }
+
+    @DeleteMapping("/batch")
+    public Result<Void> deleteBatch(@RequestBody List<Long> ids) {
+        dataxTaskService.deleteBatch(ids);
         return Result.success();
     }
 

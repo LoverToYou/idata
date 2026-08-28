@@ -66,10 +66,10 @@
         empty-text="暂无执行记录"
         @sort-change="onSortChange"
       >
-        <el-table-column prop="id" label="ID" width="70" sortable="custom" />
+        <el-table-column prop="id" label="ID" width="70" />
         <el-table-column label="工作流名称" min-width="160">
           <template #default="{ row }">
-            <span class="workflow-name">{{ row.workflowName || `工作流 #${row.workflowId}` }}</span>
+            {{ row.workflowName || `工作流 #${row.workflowId}` }}
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="110" sortable="custom">
@@ -97,7 +97,7 @@
         <el-table-column prop="triggeredBy" label="触发方式" width="110">
           <template #default="{ row }">
             <el-tag size="small" effect="plain" :type="row.triggeredBy === 'MANUAL' ? 'primary' : 'info'">
-              {{ row.triggeredBy === 'MANUAL' ? '手动' : row.triggeredBy === 'SCHEDULE' ? '定时' : row.triggeredBy || '-' }}
+              {{ row.triggeredBy === 'MANUAL' ? '手动' : row.triggeredBy === 'CRON' ? '定时' : row.triggeredBy || '-' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -134,7 +134,7 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="触发方式" :span="1">
-            {{ detailInstance.triggeredBy === 'MANUAL' ? '手动' : detailInstance.triggeredBy === 'SCHEDULE' ? '定时' : detailInstance.triggeredBy || '-' }}
+            {{ detailInstance.triggeredBy === 'MANUAL' ? '手动' : detailInstance.triggeredBy === 'CRON' ? '定时' : detailInstance.triggeredBy || '-' }}
           </el-descriptions-item>
           <el-descriptions-item label="开始时间" :span="1">
             {{ detailInstance.startedAt ? formatTime(detailInstance.startedAt) : '-' }}
@@ -590,11 +590,6 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.workflow-name {
-  font-weight: 500;
-  color: #303133;
 }
 
 /* Log dialogs */

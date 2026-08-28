@@ -6,14 +6,33 @@
       <template #header>
         <div class="card-header">
           <span>SQL 任务管理</span>
-          <el-button type="primary" @click="handleNewTask">
-            <el-icon><Plus /></el-icon> 新建任务
-          </el-button>
+          <div class="header-actions">
+            <el-input
+              v-model="keyword"
+              placeholder="搜索任务名称..."
+              clearable
+              style="width: 240px; margin-right: 12px"
+              @clear="handleSearch"
+              @keyup.enter="handleSearch"
+            />
+            <el-button @click="handleSearch">搜索</el-button>
+            <el-button
+              v-if="selectedIds.length > 0"
+              type="danger"
+              @click="handleBatchDelete"
+            >
+              <el-icon><Delete /></el-icon> 批量删除 ({{ selectedIds.length }})
+            </el-button>
+            <el-button type="primary" @click="handleNewTask">
+              <el-icon><Plus /></el-icon> 新建任务
+            </el-button>
+          </div>
         </div>
       </template>
 
-      <el-table :data="tasks" stripe v-loading="loadingTasks" @row-dblclick="handleEditTask">
-        <el-table-column type="index" label="#" width="60" />
+      <el-table :data="tasks" stripe v-loading="loadingTasks" @row-dblclick="handleEditTask" @selection-change="onSelectionChange">
+        <el-table-column type="selection" width="50" />
+        <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="name" label="任务名称" min-width="200" />
         <el-table-column label="数据库类型" width="130">
           <template #default="{ row }">
@@ -64,6 +83,19 @@
           </template>
         </el-table-column>
       </el-table>
+      <el-pagination
+        v-if="total > 0"
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[5, 10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        background
+        small
+        style="margin-top: 16px; justify-content: flex-end;"
+        @current-change="handlePageChange"
+        @size-change="handlePageChange"
+      />
     </el-card>
 
     <!-- Editor View -->
@@ -110,6 +142,42 @@
                 :value="ds.id"
               />
             </el-select>
+            <el-select
+              v-if="currentDs?.type === 'HIVE'"
+              v-model="selectedUdf"
+              placeholder="UDF 函数"
+              clearable
+              filterable
+              style="width: 180px; margin-left: 12px"
+            >
+              <el-option
+                v-for="u in udfs"
+                :key="u.id"
+                :label="`${u.databaseName}.${u.name}`"
+                :value="u.id"
+              >
+                <span>{{ u.databaseName }}.{{ u.name }}</span>
+                <el-tag :type="udfStatusType(u.registerStatus)" size="small" effect="plain" style="margin-left: 8px">
+                  {{ udfStatusText(u.registerStatus) }}
+                </el-tag>
+              </el-option>
+            </el-select>
+            <el-button
+              v-if="currentDs?.type === 'HIVE'"
+              size="small"
+              style="margin-left: 8px"
+              @click="insertSelectedUdf"
+            >
+              插入
+            </el-button>
+            <el-button
+              v-if="currentDs?.type === 'HIVE' && selectedUdfItem && selectedUdfItem.registerStatus !== 'REGISTERED'"
+              size="small"
+              type="success"
+              @click="handleEditorRegisterUdf"
+            >
+              注册
+            </el-button>
           </div>
           <div class="toolbar-right">
             <el-button
@@ -134,6 +202,9 @@
             </el-button>
             <el-button type="warning" @click="handleExplain" :loading="explaining">
               执行计划
+            </el-button>
+            <el-button type="primary" plain @click="handleSave()" :loading="saving">
+              <el-icon><DocumentChecked /></el-icon> 保存
             </el-button>
             <el-button type="primary" @click="handleExecute" :loading="executing">
               ▶ 运行 (Ctrl+Enter)
@@ -269,7 +340,9 @@
                 <el-table-column prop="rows" label="行数" width="80" />
                 <el-table-column prop="extra" label="额外信息" min-width="200" />
               </el-table>
-              <el-alert v-if="planResult.rawPlan && planResult.plan?.length === 0" type="error" :description="planResult.rawPlan" show-icon />
+              <el-alert v-if="planResult.rawPlan && !planResult.plan?.length" type="info" show-icon title="执行计划">
+                <pre style="white-space: pre-wrap; margin: 0; font-size: 12px; line-height: 1.6;">{{ planResult.rawPlan }}</pre>
+              </el-alert>
             </div>
             <el-empty v-else description="点击「执行计划」查看" />
           </el-tab-pane>
@@ -369,13 +442,14 @@ import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } 
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Layout from '@/components/common/Layout.vue'
 import { listDatasources, listDatasourceTables, listDatasourceDatabases } from '@/api/datasource'
-import { executeSql, explainSql, analyzeSql, fullAnalyze } from '@/api/sql'
-import { listTasks, getTask, createTask, updateTask, deleteTask, publishTask, unpublishTask } from '@/api/sql-task'
+import { executeSql, explainSql, analyzeSql, fullAnalyze, closeSqlSession } from '@/api/sql'
+import { listTasks, listTasksPage, getTask, createTask, updateTask, deleteTask, deleteTaskBatch, publishTask, unpublishTask } from '@/api/sql-task'
 import { getSqlKeywords, detectGrammarContext, getCachedGrammarContext, setCachedGrammarContext } from '@/api/grammar'
 import type { SqlKeywords } from '@/api/grammar'
-import type { DatasourceConfig } from '@/types'
+import type { DatasourceConfig, UdfDefinition } from '@/types'
 import type { SqlTaskRequest } from '@/api/sql-task'
 import type { SqlExecuteResult, ExplainPlanResult, SqlAnalysis, SqlSuggestion } from '@/api/sql'
+import { listUdfsByDatasource, registerUdf } from '@/api/udf'
 import { resolveParams } from '@/api/parameter'
 import * as monaco from 'monaco-editor'
 import { format as formatSql } from 'sql-formatter'
@@ -396,6 +470,31 @@ interface ExecLogEntry {
 
 // --- Mode ---
 const mode = ref<'list' | 'edit'>('list')
+
+// --- SQL 执行会话 ---
+// 同一会话内的连续执行复用同一数据库连接，保持 use db、会话变量等状态
+const sessionId = ref<string | null>(null)
+
+function generateSessionId(): string {
+  const uuid = globalThis.crypto?.randomUUID?.()
+  if (uuid) return uuid
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
+function closeCurrentSession() {
+  const id = sessionId.value
+  sessionId.value = null
+  if (id) closeSqlSession(id).catch(() => {})
+}
+
+function rotateSession() {
+  closeCurrentSession()
+  sessionId.value = generateSessionId()
+}
 
 async function handleBackToList(skipSave = false) {
   if (!skipSave && currentTaskId.value) {
@@ -419,6 +518,7 @@ async function handleBackToList(skipSave = false) {
   contentChangeDisposable = null
   editor?.dispose()
   editor = null
+  closeCurrentSession()
   mode.value = 'list'
   currentTaskId.value = null
   currentTask.value = null
@@ -428,6 +528,11 @@ async function handleBackToList(skipSave = false) {
 // --- Task Table ---
 const tasks = ref<any[]>([])
 const loadingTasks = ref(false)
+const keyword = ref('')
+const selectedIds = ref<number[]>([])
+const page = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 const currentTaskId = ref<number | null>(null)
 const currentTask = ref<any>(null)
 const taskName = ref('')
@@ -440,10 +545,39 @@ function formatTime(t: string) {
 async function loadTasks() {
   loadingTasks.value = true
   try {
-    const res = await listTasks()
-    tasks.value = res.data
+    const res = await listTasksPage(keyword.value || undefined, page.value, pageSize.value)
+    tasks.value = res.data.data
+    total.value = res.data.total
   } catch { /* ignore */ }
   finally { loadingTasks.value = false }
+}
+
+function handlePageChange() {
+  loadTasks()
+}
+
+function onSelectionChange(rows: any[]) {
+  selectedIds.value = rows.map(r => r.id)
+}
+
+function handleSearch() {
+  page.value = 1
+  loadTasks()
+}
+
+async function handleBatchDelete() {
+  const count = selectedIds.value.length
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${count} 个 SQL 任务吗？`, '提示')
+    await deleteTaskBatch(selectedIds.value)
+    ElMessage.success(`成功删除 ${count} 个任务`)
+    selectedIds.value = []
+    await loadTasks()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error(e.message || '批量删除失败')
+    }
+  }
 }
 
 function handleEditTask(task: any) {
@@ -451,6 +585,7 @@ function handleEditTask(task: any) {
   currentTask.value = task
   taskName.value = task.name
   mode.value = 'edit'
+  rotateSession()
   ensureEditor()
   startAutoSave()
   nextTick(() => loadTaskDetail(task.id))
@@ -473,6 +608,7 @@ async function loadTaskDetail(id: number) {
       if (ds) {
         loadKeywords(ds.type)
       }
+      await loadUdfs()
     }
   } catch {
     ElMessage.error('加载任务失败')
@@ -511,25 +647,8 @@ function onCreateDialogClosed() {
   newTaskForm.datasourceId = undefined
 }
 
-function generateDefaultComment(dsType: string, taskName: string = ''): string {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const d = String(now.getDate()).padStart(2, '0')
-  const dateStr = `${y}${m}${d}`
-  const typeLabel = dsType === 'HIVE' ? 'Hive' : 'MySQL'
-  return [
-    `-- ${typeLabel} SQL`,
-    '-- **********************************************',
-    `-- 所属主题: ${taskName}`,
-    '-- 描述: ',
-    '-- 创建者 : ',
-    `-- 创建日期: ${dateStr}`,
-    '-- 修改日志:',
-    '-- 修改日期 修改人 修改内容',
-    '-- yyyymmdd name comment',
-    '-- **********************************************',
-  ].join('\n')
+function generateDefaultComment(_dsType: string, _taskName: string = ''): string {
+  return ''
 }
 
 function handleNewTask() {
@@ -561,9 +680,11 @@ async function handleCreateConfirm() {
     if (ds) {
       loadKeywords(ds.type)
     }
+    await loadUdfs()
 
     createDialogVisible.value = false
     mode.value = 'edit'
+    rotateSession()
     startAutoSave()
     executedStatements.value = []
     execLog.value = []
@@ -658,7 +779,73 @@ async function handleUnpublishTable(task: any) {
 // --- Datasource ---
 const datasources = ref<DatasourceConfig[]>([])
 const selectedDatasource = ref<number | undefined>()
+const currentDs = computed(() => datasources.value.find(d => d.id === selectedDatasource.value))
 const saving = ref(false)
+
+// --- Hive UDF（来自 UDF 管理模块） ---
+const udfs = ref<UdfDefinition[]>([])
+const selectedUdf = ref<number | null>(null)
+const selectedUdfItem = computed(() => udfs.value.find(u => u.id === selectedUdf.value) || null)
+
+async function loadUdfs() {
+  if (!selectedDatasource.value || currentDs.value?.type !== 'HIVE') {
+    udfs.value = []
+    selectedUdf.value = null
+    return
+  }
+  try {
+    const res = await listUdfsByDatasource(selectedDatasource.value)
+    udfs.value = res.data
+  } catch {
+    udfs.value = []
+  }
+}
+
+function udfStatusType(s: string) {
+  if (s === 'REGISTERED') return 'success'
+  if (s === 'FAILED') return 'danger'
+  return 'info'
+}
+
+function udfStatusText(s: string) {
+  if (s === 'REGISTERED') return '已注册'
+  if (s === 'UNREGISTERED') return '未注册'
+  if (s === 'FAILED') return '失败'
+  return s || '-'
+}
+
+/** 把选中 UDF 以 数据库.函数名( 形式插入编辑器光标处（全限定名，跨库安全） */
+function insertSelectedUdf() {
+  const u = selectedUdfItem.value
+  if (!u || !editor) return
+  const text = `${u.databaseName}.${u.name}(`
+  const sel = editor.getSelection()
+  if (sel && !sel.isEmpty()) {
+    editor.executeEdits('udf', [{ range: sel, text }])
+  } else {
+    editor.trigger('keyboard', 'type', { text })
+  }
+  editor.focus()
+}
+
+/** 在编辑器内注册选中 UDF；成功后重连会话使新函数对当前会话可见 */
+async function handleEditorRegisterUdf() {
+  const u = selectedUdfItem.value
+  if (!u) return
+  try {
+    const res = await registerUdf(u.id)
+    if (res.data.registerStatus === 'REGISTERED') {
+      ElMessage.success(`函数 ${res.data.databaseName}.${res.data.name} 注册成功`)
+      rotateSession()
+    } else {
+      ElMessage.error(`注册失败：${res.data.registerMessage || '未知错误'}`)
+    }
+    await loadUdfs()
+    selectedUdf.value = u.id
+  } catch (e: any) {
+    ElMessage.error(e.message || '注册失败')
+  }
+}
 let autoSaveTimer: ReturnType<typeof setInterval> | null = null
 const dirty = ref(false)
 let contentChangeDisposable: monaco.IDisposable | null = null
@@ -930,6 +1117,20 @@ function registerKeywordCompletion() {
         }
       }
 
+      // --- Hive UDF suggestions (from UDF module) ---
+      if (currentDs.value?.type === 'HIVE' && udfs.value.length > 0) {
+        const registeredUdfs = udfs.value.filter(u => u.registerStatus === 'REGISTERED')
+        if (registeredUdfs.length > 0 && (!ctx || ctx.expectsFunction)) {
+          result.push(...registeredUdfs.map(u => ({
+            label: `${u.databaseName}.${u.name}`,
+            kind: ks.Function,
+            insertText: `${u.databaseName}.${u.name}(`,
+            detail: 'Hive UDF',
+            sortText: 'y' + u.name,
+          })))
+        }
+      }
+
       return { suggestions: result }
     },
   })
@@ -963,7 +1164,17 @@ function ensureEditor() {
     monaco.editor.defineTheme('idata', {
       base: 'vs',
       inherit: true,
-      rules: [],
+      rules: [
+        { token: 'keyword', foreground: '#1a56db', fontStyle: 'bold' },
+        { token: 'type', foreground: '#7c3aed' },
+        { token: 'string.sql', foreground: '#0d9488' },
+        { token: 'number', foreground: '#059669' },
+        { token: 'comment', foreground: '#9ca3af', fontStyle: 'italic' },
+        { token: 'function', foreground: '#7c3aed' },
+        { token: 'variable', foreground: '#c2410c' },
+        { token: 'operator', foreground: '#1a56db' },
+        { token: 'builtinFunction', foreground: '#7c3aed' },
+      ],
       colors: { 'editor.background': '#fafafa' },
     })
     editor = monaco.editor.create(monacoContainer.value, {
@@ -979,6 +1190,7 @@ function ensureEditor() {
       quickSuggestions: true,
       suggestOnTriggerCharacters: true,
     })
+    monaco.editor.setTheme('idata')
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       handleExecute()
     })
@@ -1011,9 +1223,11 @@ onBeforeUnmount(async () => {
   keywordCompletionDisposable?.dispose()
   contentChangeDisposable?.dispose()
   editor?.dispose()
+  closeCurrentSession()
 })
 
 async function onDatasourceChange(val: number) {
+  if (mode.value === 'edit') rotateSession()
   selectedDatasource.value = val
   await loadDatabases(val)
   await loadAllTables(val)
@@ -1021,6 +1235,7 @@ async function onDatasourceChange(val: number) {
   if (ds) {
     loadKeywords(ds.type)
   }
+  await loadUdfs()
 }
 
 function getEditorSql(): string {
@@ -1033,6 +1248,7 @@ function getEditorSql(): string {
 }
 
 async function handleExecute() {
+  if (executing.value) return
   if (!selectedDatasource.value) {
     ElMessage.warning('请先选择数据源')
     return
@@ -1075,7 +1291,7 @@ async function handleExecute() {
     const label = resolvedStmt.length > 80 ? resolvedStmt.slice(0, 80) + '...' : resolvedStmt
     try {
       addExecLog(`执行: ${label}`, 'info')
-      const res = await executeSql(selectedDatasource.value, resolvedStmt)
+      const res = await executeSql(selectedDatasource.value, resolvedStmt, sessionId.value ?? undefined)
       const result = res.data
       stmts.push({ id: nextStmtId++, sql: origStmt, resolvedSql: resolvedStmt, result })
       if (result.errorMessage) {
@@ -1117,7 +1333,7 @@ async function handleExplain() {
   explaining.value = true
   activeTab.value = 'plan'
   try {
-    const res = await explainSql(selectedDatasource.value, stmtToExplain)
+    const res = await explainSql(selectedDatasource.value, stmtToExplain, sessionId.value ?? undefined)
     planResult.value = res.data
   } finally {
     explaining.value = false
@@ -1148,7 +1364,7 @@ async function handleAnalyze() {
 
     if (selectedDatasource.value && res.data.analysis.valid) {
       try {
-        const fullRes = await fullAnalyze(selectedDatasource.value, stmtToAnalyze)
+        const fullRes = await fullAnalyze(selectedDatasource.value, stmtToAnalyze, sessionId.value ?? undefined)
         suggestions.value = fullRes.data.suggestions
         planResult.value = fullRes.data.plan
       } catch { /* plan might fail, that's ok */ }
@@ -1158,6 +1374,76 @@ async function handleAnalyze() {
   }
 }
 
+function postProcessSql(sql: string): string {
+  const lines = sql.split('\n')
+
+  // Collect content column positions from column-list clauses
+  const contentCols = new Set<number>()
+  for (const line of lines) {
+    const m = line.match(/^( *)((?:SELECT|ORDER\s+BY|GROUP\s+BY)\s+)(\S)/i)
+    if (m) contentCols.add(m[1].length + m[2].length)
+  }
+
+  const step1Keywords = new Set(['SELECT', 'ORDER', 'GROUP'])
+  const step2Keywords = new Set([
+    'SELECT', 'FROM', 'WHERE', 'JOIN', 'ON', 'AND', 'OR',
+    'GROUP', 'ORDER', 'HAVING', 'LIMIT', 'INSERT', 'INTO',
+    'VALUES', 'SET', 'CREATE', 'TABLE', 'ALTER', 'DROP',
+    'DELETE', 'UPDATE', 'END',
+    'LEFT', 'RIGHT', 'INNER', 'CROSS', 'OUTER', 'FULL',
+    'UNION', 'ALL', 'DISTINCT', 'EXISTS', 'NOT', 'IN',
+    'IS', 'NULL', 'LIKE', 'BETWEEN',
+    'OVER', 'PARTITION', 'BY', 'ASC', 'DESC', 'WITH', 'USING', 'SORT',
+    'WHEN', 'THEN', 'ELSE',
+  ])
+
+  // Step 1: Strip trailing commas from SELECT/ORDER BY/GROUP BY lines
+  for (let j = 0; j < lines.length; j++) {
+    const trimmed = lines[j].trim()
+    const fw = trimmed.match(/^([A-Z]+)\b/)?.[1]
+    if (fw && step1Keywords.has(fw) && trimmed.endsWith(',')) {
+      lines[j] = lines[j].replace(/,\s*$/, '')
+    }
+  }
+
+  // Step 2: Convert comma-after to comma-before for continuation lines
+  for (let j = 0; j < lines.length; j++) {
+    let line = lines[j]
+    const indent = line.match(/^ */)?.[0].length ?? 0
+    const trimmed = line.trim()
+
+    if (contentCols.has(indent) &&
+        !trimmed.startsWith(')') &&
+        !trimmed.startsWith(',')) {
+      const fw = trimmed.match(/^([A-Z]\w*)/)?.[1]
+      if (!fw || !step2Keywords.has(fw)) {
+        const clean = trimmed.replace(/,\s*$/, '')
+        if (indent >= 2) {
+          line = ' '.repeat(indent - 2) + ', ' + clean
+        }
+      }
+    }
+    lines[j] = line
+  }
+
+  // Step 3: Split JOIN ... ON into separate lines
+  const result: string[] = []
+  for (const line of lines) {
+    const joinOnMatch = line.match(/^(\s*)(JOIN\s+\S+(?:\s+(?:AS\s+)?\S+)?)\s+ON\s+/i)
+    if (joinOnMatch) {
+      const indent = joinOnMatch[1]
+      const joinPart = joinOnMatch[2]
+      const rest = line.slice(joinOnMatch[0].length)
+      result.push(indent + joinPart)
+      result.push(indent + 'ON       ' + rest)
+    } else {
+      result.push(line)
+    }
+  }
+
+  return result.join('\n')
+}
+
 function handleFormat() {
   const sql = getEditorSql().trim()
   if (!sql) { ElMessage.warning('SQL 不能为空'); return }
@@ -1165,14 +1451,30 @@ function handleFormat() {
   try {
     const ds = datasources.value.find(d => d.id === selectedDatasource.value)
     const language = ds?.type === 'HIVE' ? 'hive' : 'mysql'
-    const formatted = formatSql(sql, {
+    let formatted = formatSql(sql, {
       language,
       keywordCase: 'upper',
-      tabWidth: 2,
+      indentStyle: 'tabularLeft',
+      logicalOperatorNewline: 'before',
       linesBetweenQueries: 2,
     })
+    formatted = postProcessSql(formatted)
     if (editor) {
-      editor.setValue(formatted)
+      const selection = editor.getSelection()
+      if (selection && !selection.isEmpty()) {
+        // 有选区时只替换选中部分，不丢失其他 SQL
+        const range = new monaco.Range(
+          selection.startLineNumber, selection.startColumn,
+          selection.endLineNumber, selection.endColumn
+        )
+        editor.executeEdits('format', [{ range, text: formatted, forceMoveMarkers: true }])
+        editor.setSelection(range.setEndPosition(
+          selection.startLineNumber,
+          selection.startColumn + formatted.length
+        ))
+      } else {
+        editor.setValue(formatted)
+      }
     }
     ElMessage.success('格式化完成')
   } catch (e: any) {
@@ -1242,6 +1544,10 @@ async function handleUnpublish() {
 .card-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+.header-actions {
+  display: flex;
   align-items: center;
 }
 

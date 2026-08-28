@@ -1,10 +1,17 @@
 import request from './request'
-import type { ApiResult, WorkflowDefinition } from '@/types'
+import type { ApiResult, PageResult, WorkflowDefinition } from '@/types'
 
 // --- Workflow CRUD ---
 
-export function listWorkflows(): Promise<ApiResult<WorkflowDefinition[]>> {
-  return request.get('/workflow/list')
+export function listWorkflows(keyword?: string): Promise<ApiResult<WorkflowDefinition[]>> {
+  const params = keyword ? { keyword } : {}
+  return request.get('/workflow/list', { params })
+}
+
+export function listWorkflowsPage(keyword?: string, page: number = 1, pageSize: number = 10): Promise<ApiResult<PageResult<WorkflowDefinition>>> {
+  const params: Record<string, any> = { page, pageSize }
+  if (keyword) params.keyword = keyword
+  return request.get('/workflow/page', { params })
 }
 
 export function getWorkflow(id: number): Promise<ApiResult<WorkflowDefinition>> {
@@ -32,6 +39,10 @@ export function updateWorkflow(data: {
 
 export function deleteWorkflow(id: number): Promise<ApiResult<null>> {
   return request.delete(`/workflow/${id}`)
+}
+
+export function deleteWorkflowBatch(ids: number[]): Promise<ApiResult<null>> {
+  return request.delete('/workflow/batch', { data: ids })
 }
 
 export function publishWorkflow(id: number): Promise<ApiResult<WorkflowDefinition>> {
@@ -70,6 +81,10 @@ export function deleteSchedule(id: number): Promise<ApiResult<null>> {
 
 export function toggleSchedule(id: number, enabled: boolean): Promise<ApiResult<any>> {
   return request.put(`/schedule/${id}/toggle?enabled=${enabled}`)
+}
+
+export function triggerSchedule(id: number): Promise<ApiResult<any>> {
+  return request.post(`/schedule/${id}/trigger`)
 }
 
 // --- Monitor ---

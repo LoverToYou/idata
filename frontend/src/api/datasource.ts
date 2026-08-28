@@ -1,8 +1,15 @@
 import request from './request'
-import type { DatasourceConfig, DatasourceRequest, ConnectionTestRequest, ApiResult } from '@/types'
+import type { DatasourceConfig, DatasourceRequest, ConnectionTestRequest, ApiResult, PageResult } from '@/types'
 
-export function listDatasources(): Promise<ApiResult<DatasourceConfig[]>> {
-  return request.get('/datasource/list')
+export function listDatasources(keyword?: string): Promise<ApiResult<DatasourceConfig[]>> {
+  const params = keyword ? { keyword } : {}
+  return request.get('/datasource/list', { params })
+}
+
+export function listDatasourcesPage(keyword?: string, page: number = 1, pageSize: number = 10): Promise<ApiResult<PageResult<DatasourceConfig>>> {
+  const params: Record<string, any> = { page, pageSize }
+  if (keyword) params.keyword = keyword
+  return request.get('/datasource/page', { params })
 }
 
 export function getDatasource(id: number): Promise<ApiResult<DatasourceConfig>> {
@@ -19,6 +26,10 @@ export function updateDatasource(data: DatasourceRequest): Promise<ApiResult<Dat
 
 export function deleteDatasource(id: number): Promise<ApiResult<null>> {
   return request.delete(`/datasource/${id}`)
+}
+
+export function deleteDatasourceBatch(ids: number[]): Promise<ApiResult<null>> {
+  return request.delete('/datasource/batch', { data: ids })
 }
 
 export function testConnection(data: ConnectionTestRequest): Promise<ApiResult<boolean>> {

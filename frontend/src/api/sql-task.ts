@@ -1,5 +1,5 @@
 import request from './request'
-import type { ApiResult } from '@/types'
+import type { ApiResult, PageResult } from '@/types'
 
 export interface SqlTask {
   id: number
@@ -22,8 +22,15 @@ export interface SqlTaskRequest {
   sqlContent: string
 }
 
-export function listTasks(): Promise<ApiResult<SqlTask[]>> {
-  return request.get('/sql-task/list')
+export function listTasks(keyword?: string): Promise<ApiResult<SqlTask[]>> {
+  const params = keyword ? { keyword } : {}
+  return request.get('/sql-task/list', { params })
+}
+
+export function listTasksPage(keyword?: string, page: number = 1, pageSize: number = 10): Promise<ApiResult<PageResult<SqlTask>>> {
+  const params: Record<string, any> = { page, pageSize }
+  if (keyword) params.keyword = keyword
+  return request.get('/sql-task/page', { params })
 }
 
 export function getTask(id: number): Promise<ApiResult<SqlTask>> {
@@ -40,6 +47,10 @@ export function updateTask(data: SqlTaskRequest): Promise<ApiResult<SqlTask>> {
 
 export function deleteTask(id: number): Promise<ApiResult<null>> {
   return request.delete(`/sql-task/${id}`)
+}
+
+export function deleteTaskBatch(ids: number[]): Promise<ApiResult<null>> {
+  return request.delete('/sql-task/batch', { data: ids })
 }
 
 export function publishTask(id: number): Promise<ApiResult<SqlTask>> {

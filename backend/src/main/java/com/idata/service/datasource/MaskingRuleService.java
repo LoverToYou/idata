@@ -1,6 +1,9 @@
 package com.idata.service.datasource;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.idata.dto.PageResult;
 import com.idata.dto.MaskingRuleRequest;
 import com.idata.dto.MaskingRuleVO;
 import com.idata.entity.MaskingRule;
@@ -20,13 +23,36 @@ public class MaskingRuleService {
     }
 
     public List<MaskingRuleVO> listAll() {
-        return maskingRuleMapper.selectList(
-                new LambdaQueryWrapper<MaskingRule>()
-                        .orderByDesc(MaskingRule::getUpdatedAt)
-                )
+        return listAll(null);
+    }
+
+    public List<MaskingRuleVO> listAll(String keyword) {
+        LambdaQueryWrapper<MaskingRule> wrapper = new LambdaQueryWrapper<MaskingRule>()
+                .orderByDesc(MaskingRule::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(MaskingRule::getName, keyword);
+        }
+        return maskingRuleMapper.selectList(wrapper)
                 .stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
+    }
+
+    public PageResult<MaskingRuleVO> listPage(String keyword, int pageNum, int pageSize) {
+        LambdaQueryWrapper<MaskingRule> wrapper = new LambdaQueryWrapper<MaskingRule>()
+                .orderByDesc(MaskingRule::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(MaskingRule::getName, keyword);
+        }
+        Page<MaskingRule> page = new Page<>(pageNum, pageSize);
+        Page<MaskingRule> result = maskingRuleMapper.selectPage(page, wrapper);
+        List<MaskingRuleVO> list = result.getRecords().stream().map(this::toVO).collect(Collectors.toList());
+        PageResult<MaskingRuleVO> pr = new PageResult<>();
+        pr.setData(list);
+        pr.setTotal(result.getTotal());
+        pr.setPage((int) result.getCurrent());
+        pr.setPageSize((int) result.getSize());
+        return pr;
     }
 
     public MaskingRuleVO getById(Long id) {
@@ -65,6 +91,11 @@ public class MaskingRuleService {
             throw new IllegalArgumentException("脱敏规则不存在: " + id);
         }
         maskingRuleMapper.deleteById(id);
+    }
+
+    public void deleteBatch(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return;
+        maskingRuleMapper.deleteByIds(ids);
     }
 
     private MaskingRuleVO toVO(MaskingRule rule) {

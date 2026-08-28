@@ -10,6 +10,7 @@ import com.idata.mapper.WorkflowDefinitionMapper;
 import com.idata.engine.datax.DataXRunner;
 import com.idata.dto.DataxTaskVO;
 import com.idata.service.datax.DataxTaskService;
+import com.idata.service.python.PythonTaskService;
 import com.idata.service.sql.ParameterService;
 import com.idata.service.sql.SqlExecutorService;
 import com.idata.service.sql.SqlTaskService;
@@ -39,6 +40,7 @@ public class DagExecutor {
     private final SqlExecutorService sqlExecutorService;
     private final DataXRunner dataXRunner;
     private final DataxTaskService dataxTaskService;
+    private final PythonTaskService pythonTaskService;
 
     public DagExecutor(WorkflowDefinitionMapper workflowDefinitionMapper,
                        WorkflowInstanceService workflowInstanceService,
@@ -48,7 +50,8 @@ public class DagExecutor {
                        ParameterService parameterService,
                        SqlExecutorService sqlExecutorService,
                        DataXRunner dataXRunner,
-                       DataxTaskService dataxTaskService) {
+                       DataxTaskService dataxTaskService,
+                       PythonTaskService pythonTaskService) {
         this.workflowDefinitionMapper = workflowDefinitionMapper;
         this.workflowInstanceService = workflowInstanceService;
         this.nodeExecutionLogMapper = nodeExecutionLogMapper;
@@ -58,6 +61,7 @@ public class DagExecutor {
         this.sqlExecutorService = sqlExecutorService;
         this.dataXRunner = dataXRunner;
         this.dataxTaskService = dataxTaskService;
+        this.pythonTaskService = pythonTaskService;
     }
 
     /**
@@ -280,6 +284,8 @@ public class DagExecutor {
             executeSqlTaskNode(nodeConfig, nodeLog.getInstanceId());
         } else if ("datax".equals(nodeType)) {
             executeDataxNode(nodeConfig, nodeLog);
+        } else if ("python_script".equals(nodeType)) {
+            executePythonNode(nodeConfig, nodeLog);
         } else {
             log.warn("Unknown node type '{}' for node {} in instance {}, skipping",
                     nodeType, nodeConfig.get("id"), nodeLog.getInstanceId());
@@ -373,5 +379,47 @@ public class DagExecutor {
         }
         log.info("SQL task {} completed: {} rows affected, {}ms",
                 task.getName(), result.getAffectedRows(), result.getElapsedMs());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void executePythonNode(Map<String, Object> nodeConfig, NodeExecutionLog nodeLog) {
+        Map<String, Object> config = (Map<String, Object>) nodeConfig.get("config");
+        if (config == null) {
+            throw new IllegalArgumentException("Python 脚本节点缺少 config: " + nodeConfig.get("id"));
+        }
+
+        Object pythonScriptIdObj = config.get("pythonScriptId");
+        if (pythonScriptIdObj == null) {
+            throw new IllegalArgumentException("Python 脚本节点缺少 pythonScriptId: " + nodeConfig.get("id"));
+        }
+
+        Long pythonScriptId;
+        if (pythonScriptIdObj instanceof Number) {
+            pythonScriptId = ((Number) pythonScriptIdObj).longValue();
+        } else {
+            pythonScriptId = Long.valueOf(pythonScriptIdObj.toString());
+        }
+
+        var script = pythonTaskService.getScriptEntity(pythonScriptId);
+
+        Object rawParams = config.get("params");
+        String params = rawParams != null ? parameterService.resolveParams(rawParams.toString()) : "";
+
+        log.info("Executing Python script {} (id={}) in instance {}",
+                script.getName(), pythonScriptId, nodeLog.getInstanceId());
+
+        var run = pythonTaskService.runSync(pythonScriptId, params);
+
+        String output = "退出码: " + (run.getExitCode() != null ? run.getExitCode() : "-")
+                + "\n\n===== 标准输出 =====\n" + (run.getStdout() != null ? run.getStdout() : "(空)")
+                + "\n===== 标准错误 =====\n" + (run.getStderr() != null ? run.getStderr() : "(空)");
+        nodeLog.setOutputLog(output);
+
+        if (!"SUCCESS".equals(run.getStatus())) {
+            String detail = run.getStderr() != null && !run.getStderr().isBlank()
+                    ? run.getStderr().trim() : run.getStatus();
+            throw new RuntimeException("Python 脚本执行失败(" + run.getStatus() + "): " + detail);
+        }
+        log.info("Python script {} completed in instance {}", script.getName(), nodeLog.getInstanceId());
     }
 }

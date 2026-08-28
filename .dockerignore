@@ -10,6 +10,9 @@ frontend/dist/
 # Java
 backend/target/
 *.class
+# lib/ 下的 jar 是 UDF 在线编译的 classpath，必须保留（例外规则需在 *.jar 之前）
+!backend/lib/
+!backend/lib/**
 *.jar
 
 # IDE

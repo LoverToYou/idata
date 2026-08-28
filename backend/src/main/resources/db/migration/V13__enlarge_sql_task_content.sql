@@ -1,0 +1,2 @@
+ALTER TABLE sql_task
+    MODIFY sql_content MEDIUMTEXT NOT NULL COMMENT 'SQL 内容';

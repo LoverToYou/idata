@@ -1,6 +1,7 @@
 package com.idata.controller;
 
 import com.idata.common.Result;
+import com.idata.dto.PageResult;
 import com.idata.dto.SqlTaskRequest;
 import com.idata.dto.SqlTaskVO;
 import com.idata.service.sql.SqlTaskService;
@@ -20,8 +21,16 @@ public class SqlTaskController {
     }
 
     @GetMapping("/list")
-    public Result<List<SqlTaskVO>> list() {
-        return Result.success(sqlTaskService.listAll());
+    public Result<List<SqlTaskVO>> list(@RequestParam(required = false) String keyword) {
+        return Result.success(sqlTaskService.listAll(keyword));
+    }
+
+    @GetMapping("/page")
+    public Result<PageResult<SqlTaskVO>> page(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(sqlTaskService.listPage(keyword, page, pageSize));
     }
 
     @GetMapping("/{id}")
@@ -42,6 +51,12 @@ public class SqlTaskController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         sqlTaskService.delete(id);
+        return Result.success();
+    }
+
+    @DeleteMapping("/batch")
+    public Result<Void> deleteBatch(@RequestBody List<Long> ids) {
+        sqlTaskService.deleteBatch(ids);
         return Result.success();
     }
 

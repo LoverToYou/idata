@@ -13,28 +13,39 @@ export interface DataxConfig {
   dataxTaskId: number | null
 }
 
-export type NodeConfig = SqlTaskConfig | DataxConfig
+export interface PythonScriptConfig {
+  type: 'python_script'
+  pythonScriptId: number | null
+  params?: string
+}
+
+export type NodeConfig = SqlTaskConfig | DataxConfig | PythonScriptConfig
 
 export interface DagNodeData {
-  nodeType: 'sql_task' | 'datax'
+  nodeType: 'sql_task' | 'datax' | 'python_script'
   config: NodeConfig
 }
 
 /** Map from DAG JSON node type → Vue Flow component type */
 function dagTypeToFlowType(dagType: string): string {
   if (dagType === 'sql_task') return 'sqlTaskNode'
+  if (dagType === 'python_script') return 'pythonScriptNode'
   return 'dataxNode' // 'datax', 'source', 'sink' all map to dataxNode
 }
 
 /** Map from Vue Flow component type → DAG JSON node type */
 function flowTypeToDagType(vfType: string): string {
   if (vfType === 'sqlTaskNode') return 'sql_task'
+  if (vfType === 'pythonScriptNode') return 'python_script'
   return 'datax'
 }
 
 function createDefaultConfig(nodeType: string): NodeConfig {
   if (nodeType === 'sql_task') {
     return { type: 'sql_task', sqlTaskId: null }
+  }
+  if (nodeType === 'python_script') {
+    return { type: 'python_script', pythonScriptId: null, params: '' }
   }
   return {
     type: 'datax',
@@ -149,7 +160,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
     position: { x: number; y: number },
   ) {
     const id = `node_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-    const dagType = template.nodeType === 'sql_task' ? 'sql_task' : 'datax'
+    const dagType =
+      template.nodeType === 'sql_task' || template.nodeType === 'python_script'
+        ? template.nodeType
+        : 'datax'
     const flowType = dagTypeToFlowType(dagType)
     const newNode = {
       id,
@@ -157,7 +171,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
       position,
       label: template.label,
       data: {
-        nodeType: dagType as 'sql_task' | 'datax',
+        nodeType: dagType as 'sql_task' | 'datax' | 'python_script',
         config: createDefaultConfig(dagType),
       },
     }

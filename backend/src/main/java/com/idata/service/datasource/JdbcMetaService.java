@@ -16,13 +16,24 @@ import java.util.Map;
 public class JdbcMetaService {
 
     private final DatasourceService datasourceService;
+    private final HiveMetaService hiveMetaService;
 
-    public JdbcMetaService(DatasourceService datasourceService) {
+    public JdbcMetaService(DatasourceService datasourceService, HiveMetaService hiveMetaService) {
         this.datasourceService = datasourceService;
+        this.hiveMetaService = hiveMetaService;
+    }
+
+    private boolean isHive(Connection conn) throws SQLException {
+        String product = conn.getMetaData().getDatabaseProductName();
+        return product != null && product.toLowerCase().contains("hive");
     }
 
     public List<String> listAccessibleDatabases(Long datasourceId) {
         try (Connection conn = datasourceService.getConnection(datasourceId)) {
+            if (isHive(conn)) {
+                // Hive driver has no MySQL information_schema; fall back to SHOW DATABASES
+                return listDatabases(datasourceId);
+            }
             boolean isMySQL = conn.getMetaData().getDatabaseProductName().toLowerCase().contains("mysql");
             if (!isMySQL) {
                 // For non-MySQL datasources (Hive etc.), fall back to listing all databases
@@ -50,6 +61,10 @@ public class JdbcMetaService {
     public List<String> listDatabases(Long datasourceId) {
         List<String> databases = new ArrayList<>();
         try (Connection conn = datasourceService.getConnection(datasourceId)) {
+            if (isHive(conn)) {
+                // Hive JDBC driver does not expose databases via getCatalogs(); use SHOW DATABASES
+                return hiveMetaService.listDatabases(datasourceId);
+            }
             DatabaseMetaData meta = conn.getMetaData();
             try (ResultSet rs = meta.getCatalogs()) {
                 while (rs.next()) {
@@ -69,6 +84,17 @@ public class JdbcMetaService {
     public List<Map<String, String>> listTables(Long datasourceId, String database) {
         List<Map<String, String>> tables = new ArrayList<>();
         try (Connection conn = datasourceService.getConnection(datasourceId)) {
+            if (isHive(conn)) {
+                String db = database != null && !database.isEmpty() ? database : conn.getCatalog();
+                if (db == null || db.isEmpty()) return tables;
+                for (String name : hiveMetaService.listTables(datasourceId, db)) {
+                    Map<String, String> table = new HashMap<>();
+                    table.put("tableSchema", db);
+                    table.put("tableName", name);
+                    tables.add(table);
+                }
+                return tables;
+            }
             String catalog = database != null ? database : conn.getCatalog();
             if (catalog == null || catalog.isEmpty()) return tables;
             String sql = "SELECT TABLE_SCHEMA, TABLE_NAME FROM information_schema.TABLES " +
@@ -99,6 +125,10 @@ public class JdbcMetaService {
     public List<Map<String, String>> listColumns(Long datasourceId, String tableName, String database) {
         List<Map<String, String>> columns = new ArrayList<>();
         try (Connection conn = datasourceService.getConnection(datasourceId)) {
+            if (isHive(conn)) {
+                String db = database != null && !database.isEmpty() ? database : conn.getCatalog();
+                return hiveMetaService.describeTable(datasourceId, db, tableName);
+            }
             DatabaseMetaData meta = conn.getMetaData();
             String catalog = database != null ? database : conn.getCatalog();
             try (ResultSet rs = meta.getColumns(catalog, null, tableName, "%")) {

@@ -11,4 +11,7 @@ public class SqlExecuteRequest {
 
     @NotBlank(message = "SQL 不能为空")
     private String sql;
+
+    /** 编辑器会话 ID，可空；非空时同会话内的执行复用同一数据库连接。 */
+    private String sessionId;
 }

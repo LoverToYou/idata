@@ -1,6 +1,9 @@
 package com.idata.service.sql;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.idata.dto.PageResult;
 import com.idata.dto.ParameterRequest;
 import com.idata.dto.ParameterVO;
 import com.idata.entity.Parameter;
@@ -43,13 +46,36 @@ public class ParameterService {
     // ---- CRUD ----
 
     public List<ParameterVO> listAll() {
-        return parameterMapper.selectList(
-                new LambdaQueryWrapper<Parameter>()
-                        .orderByDesc(Parameter::getUpdatedAt)
-                )
+        return listAll(null);
+    }
+
+    public List<ParameterVO> listAll(String keyword) {
+        LambdaQueryWrapper<Parameter> wrapper = new LambdaQueryWrapper<Parameter>()
+                .orderByDesc(Parameter::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(Parameter::getParamName, keyword);
+        }
+        return parameterMapper.selectList(wrapper)
                 .stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
+    }
+
+    public PageResult<ParameterVO> listPage(String keyword, int pageNum, int pageSize) {
+        LambdaQueryWrapper<Parameter> wrapper = new LambdaQueryWrapper<Parameter>()
+                .orderByDesc(Parameter::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(Parameter::getParamName, keyword);
+        }
+        Page<Parameter> page = new Page<>(pageNum, pageSize);
+        Page<Parameter> result = parameterMapper.selectPage(page, wrapper);
+        List<ParameterVO> list = result.getRecords().stream().map(this::toVO).collect(Collectors.toList());
+        PageResult<ParameterVO> pr = new PageResult<>();
+        pr.setData(list);
+        pr.setTotal(result.getTotal());
+        pr.setPage((int) result.getCurrent());
+        pr.setPageSize((int) result.getSize());
+        return pr;
     }
 
     public ParameterVO getById(Long id) {
@@ -111,6 +137,11 @@ public class ParameterService {
             throw new IllegalArgumentException("参数不存在: " + id);
         }
         parameterMapper.deleteById(id);
+    }
+
+    public void deleteBatch(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return;
+        parameterMapper.deleteByIds(ids);
     }
 
     // ---- Parameter Resolution ----

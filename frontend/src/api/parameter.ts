@@ -1,5 +1,5 @@
 import request from './request'
-import type { ApiResult } from '@/types'
+import type { ApiResult, PageResult } from '@/types'
 
 export interface Parameter {
   id: number
@@ -23,8 +23,15 @@ export interface ParameterRequest {
   enabled?: boolean
 }
 
-export function listParameters(): Promise<ApiResult<Parameter[]>> {
-  return request.get('/parameter/list')
+export function listParameters(keyword?: string): Promise<ApiResult<Parameter[]>> {
+  const params = keyword ? { keyword } : {}
+  return request.get('/parameter/list', { params })
+}
+
+export function listParametersPage(keyword?: string, page: number = 1, pageSize: number = 10): Promise<ApiResult<PageResult<Parameter>>> {
+  const params: Record<string, any> = { page, pageSize }
+  if (keyword) params.keyword = keyword
+  return request.get('/parameter/page', { params })
 }
 
 export function getParameter(id: number): Promise<ApiResult<Parameter>> {
@@ -41,6 +48,10 @@ export function updateParameter(data: ParameterRequest): Promise<ApiResult<Param
 
 export function deleteParameter(id: number): Promise<ApiResult<null>> {
   return request.delete(`/parameter/${id}`)
+}
+
+export function deleteParameterBatch(ids: number[]): Promise<ApiResult<null>> {
+  return request.delete('/parameter/batch', { data: ids })
 }
 
 export function resolveParams(sql: string): Promise<ApiResult<{ resolvedSql: string; resolvedParams: Record<string, string> }>> {

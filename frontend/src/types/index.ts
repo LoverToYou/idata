@@ -110,6 +110,76 @@ export interface IndexDefinition {
   columns: string[]
 }
 
+export interface PythonScript {
+  id: number
+  name: string
+  description: string
+  content: string
+  timeoutSeconds: number
+  status?: 'DRAFT' | 'PUBLISHED'
+  createdBy?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PythonRun {
+  id: number
+  scriptId: number
+  scriptName: string
+  params: string
+  status: 'RUNNING' | 'SUCCESS' | 'FAILED' | 'CANCELLED'
+  stdout: string
+  stderr: string
+  exitCode: number
+  triggeredBy: 'MANUAL' | 'WORKFLOW'
+  startedAt: string
+  finishedAt: string
+}
+
+export interface UdfDefinition {
+  id: number
+  name: string
+  className: string
+  jarFileName: string
+  jarPath: string
+  jarSize: number
+  databaseName: string
+  datasourceId: number
+  datasourceName: string
+  functionType: 'UDF' | 'UDAF' | 'UDTF'
+  description: string
+  registerStatus: 'UNREGISTERED' | 'REGISTERED' | 'FAILED'
+  registerMessage: string
+  registerSql: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UdfDefinitionRequest {
+  id?: number
+  name: string
+  className: string
+  /** 关联文件管理记录（jar 来源）；与 jarPath 二选一 */
+  fileId?: number
+  /** 手动指定 JAR 的 HDFS 路径（如 hdfs://127.0.0.1:9000/data/x.jar）；与 fileId 二选一，优先使用 */
+  jarPath?: string
+  databaseName?: string
+  datasourceId: number
+  functionType?: string
+  description?: string
+}
+
+export interface FileManage {
+  id: number
+  fileName: string
+  filePath: string
+  fileSize: number
+  fileExt: string
+  description: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface ApiResult<T> {
   code: number
   message: string

@@ -1,6 +1,9 @@
 package com.idata.service.sql;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.idata.dto.PageResult;
 import com.idata.dto.SqlTaskRequest;
 import com.idata.dto.SqlTaskVO;
 import com.idata.entity.DatasourceConfig;
@@ -27,10 +30,16 @@ public class SqlTaskService {
     }
 
     public List<SqlTaskVO> listAll() {
-        List<SqlTask> tasks = sqlTaskMapper.selectList(
-                new LambdaQueryWrapper<SqlTask>()
-                        .orderByDesc(SqlTask::getUpdatedAt)
-        );
+        return listAll(null);
+    }
+
+    public List<SqlTaskVO> listAll(String keyword) {
+        LambdaQueryWrapper<SqlTask> wrapper = new LambdaQueryWrapper<SqlTask>()
+                .orderByDesc(SqlTask::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(SqlTask::getName, keyword);
+        }
+        List<SqlTask> tasks = sqlTaskMapper.selectList(wrapper);
 
         // batch test unique datasource connections
         Map<Long, Boolean> connStatus = new HashMap<>();
@@ -50,6 +59,41 @@ public class SqlTaskService {
         return tasks.stream()
                 .map(task -> toVO(task, connStatus))
                 .collect(Collectors.toList());
+    }
+
+    public PageResult<SqlTaskVO> listPage(String keyword, int pageNum, int pageSize) {
+        LambdaQueryWrapper<SqlTask> wrapper = new LambdaQueryWrapper<SqlTask>()
+                .orderByDesc(SqlTask::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(SqlTask::getName, keyword);
+        }
+        Page<SqlTask> page = new Page<>(pageNum, pageSize);
+        Page<SqlTask> result = sqlTaskMapper.selectPage(page, wrapper);
+
+        // batch test unique datasource connections
+        Map<Long, Boolean> connStatus = new HashMap<>();
+        result.getRecords().stream()
+                .map(SqlTask::getDatasourceId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(dsId -> {
+                    try {
+                        datasourceService.testConnectionById(dsId);
+                        connStatus.put(dsId, true);
+                    } catch (Exception e) {
+                        connStatus.put(dsId, false);
+                    }
+                });
+
+        List<SqlTaskVO> list = result.getRecords().stream()
+                .map(task -> toVO(task, connStatus))
+                .collect(Collectors.toList());
+        PageResult<SqlTaskVO> pr = new PageResult<>();
+        pr.setData(list);
+        pr.setTotal(result.getTotal());
+        pr.setPage((int) result.getCurrent());
+        pr.setPageSize((int) result.getSize());
+        return pr;
     }
 
     public SqlTaskVO getById(Long id) {
@@ -99,6 +143,11 @@ public class SqlTaskService {
             throw new IllegalArgumentException("SQL 任务不存在: " + id);
         }
         sqlTaskMapper.deleteById(id);
+    }
+
+    public void deleteBatch(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return;
+        sqlTaskMapper.deleteByIds(ids);
     }
 
     public SqlTaskVO publish(Long id) {

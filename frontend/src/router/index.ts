@@ -84,6 +84,30 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '编辑工作流' },
   },
   {
+    path: '/schedule',
+    name: 'Schedule',
+    component: () => import('@/views/schedule/ScheduleList.vue'),
+    meta: { title: '定时调度' },
+  },
+  {
+    path: '/python-script',
+    name: 'PythonScript',
+    component: () => import('@/views/python-script/PythonScriptList.vue'),
+    meta: { title: 'Python 脚本' },
+  },
+  {
+    path: '/udf',
+    name: 'Udf',
+    component: () => import('@/views/udf/UdfList.vue'),
+    meta: { title: 'UDF 管理' },
+  },
+  {
+    path: '/files',
+    name: 'Files',
+    component: () => import('@/views/files/FileManageList.vue'),
+    meta: { title: '文件管理' },
+  },
+  {
     path: '/monitor',
     name: 'Monitor',
     component: () => import('@/views/monitor/MonitorView.vue'),

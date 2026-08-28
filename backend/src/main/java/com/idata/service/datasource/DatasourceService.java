@@ -9,6 +9,10 @@ import com.idata.utils.PasswordEncryptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.idata.dto.PageResult;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -28,11 +32,37 @@ public class DatasourceService {
         this.passwordEncryptor = new PasswordEncryptor(encryptionKey);
     }
 
-    public List<DatasourceVO> listAll() {
-        return datasourceConfigMapper.selectList(null)
+    public List<DatasourceVO> listAll(String keyword) {
+        LambdaQueryWrapper<DatasourceConfig> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(DatasourceConfig::getName, keyword);
+        }
+        wrapper.orderByDesc(DatasourceConfig::getUpdatedAt);
+        return datasourceConfigMapper.selectList(wrapper)
                 .stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
+    }
+
+    public List<DatasourceVO> listAll() {
+        return listAll(null);
+    }
+
+    public PageResult<DatasourceVO> listPage(String keyword, int pageNum, int pageSize) {
+        LambdaQueryWrapper<DatasourceConfig> wrapper = new LambdaQueryWrapper<DatasourceConfig>()
+                .orderByDesc(DatasourceConfig::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(DatasourceConfig::getName, keyword);
+        }
+        Page<DatasourceConfig> page = new Page<>(pageNum, pageSize);
+        Page<DatasourceConfig> result = datasourceConfigMapper.selectPage(page, wrapper);
+        List<DatasourceVO> list = result.getRecords().stream().map(this::toVO).collect(Collectors.toList());
+        PageResult<DatasourceVO> pr = new PageResult<>();
+        pr.setData(list);
+        pr.setTotal(result.getTotal());
+        pr.setPage((int) result.getCurrent());
+        pr.setPageSize((int) result.getSize());
+        return pr;
     }
 
     public DatasourceVO getById(Long id) {
@@ -88,6 +118,13 @@ public class DatasourceService {
         datasourceConfigMapper.deleteById(id);
     }
 
+    public void deleteBatch(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        datasourceConfigMapper.deleteByIds(ids);
+    }
+
     public boolean testConnection(ConnectionTestRequest request) {
         String url = buildJdbcUrl(request.getType(), request.getHost(),
                 request.getPort(), request.getDatabaseName());
@@ -116,7 +153,7 @@ public class DatasourceService {
             return String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
                     host, port, databaseName != null ? databaseName : "");
         } else if ("HIVE".equalsIgnoreCase(type)) {
-            return String.format("jdbc:hive2://%s:%d/%s",
+            return String.format("jdbc:hive2://%s:%d/%s;auth=noSasl",
                     host, port, databaseName != null ? databaseName : "default");
         }
         throw new IllegalArgumentException("不支持的数据源类型: " + type);

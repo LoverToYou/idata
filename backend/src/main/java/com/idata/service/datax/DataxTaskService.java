@@ -1,6 +1,10 @@
 package com.idata.service.datax;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.idata.dto.PageResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.idata.dto.DataxTaskRequest;
@@ -30,13 +34,36 @@ public class DataxTaskService {
     }
 
     public List<DataxTaskVO> listAll() {
-        return dataxTaskMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DataxTask>()
-                        .orderByDesc(DataxTask::getUpdatedAt)
-                )
+        return listAll(null);
+    }
+
+    public List<DataxTaskVO> listAll(String keyword) {
+        LambdaQueryWrapper<DataxTask> wrapper = new LambdaQueryWrapper<DataxTask>()
+                .orderByDesc(DataxTask::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(DataxTask::getName, keyword);
+        }
+        return dataxTaskMapper.selectList(wrapper)
                 .stream()
                 .map(this::toListVO)
                 .collect(Collectors.toList());
+    }
+
+    public PageResult<DataxTaskVO> listPage(String keyword, int pageNum, int pageSize) {
+        LambdaQueryWrapper<DataxTask> wrapper = new LambdaQueryWrapper<DataxTask>()
+                .orderByDesc(DataxTask::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(DataxTask::getName, keyword);
+        }
+        Page<DataxTask> page = new Page<>(pageNum, pageSize);
+        Page<DataxTask> result = dataxTaskMapper.selectPage(page, wrapper);
+        List<DataxTaskVO> list = result.getRecords().stream().map(this::toListVO).collect(Collectors.toList());
+        PageResult<DataxTaskVO> pr = new PageResult<>();
+        pr.setData(list);
+        pr.setTotal(result.getTotal());
+        pr.setPage((int) result.getCurrent());
+        pr.setPageSize((int) result.getSize());
+        return pr;
     }
 
     public DataxTaskVO getById(Long id) {
@@ -70,6 +97,11 @@ public class DataxTaskService {
             throw new IllegalArgumentException("DataX 任务不存在: " + id);
         }
         dataxTaskMapper.deleteById(id);
+    }
+
+    public void deleteBatch(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return;
+        dataxTaskMapper.deleteByIds(ids);
     }
 
     public DataxTaskVO publish(Long id) {
@@ -290,7 +322,7 @@ public class DataxTaskService {
         String host = ds.getHost() != null ? ds.getHost() : "localhost";
         int port = ds.getPort() != null ? ds.getPort() : 3306;
         if ("HIVE".equalsIgnoreCase(ds.getType())) {
-            return "jdbc:hive2://" + host + ":" + port + "/" + (db != null ? db : "");
+            return "jdbc:hive2://" + host + ":" + port + "/" + (db != null ? db : "") + ";auth=noSasl";
         }
         return "jdbc:mysql://" + host + ":" + port + "/" + (db != null ? db : "")
                 + "?useUnicode=true&characterEncoding=utf-8&useSSL=false";

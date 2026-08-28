@@ -4,13 +4,32 @@
       <template #header>
         <div class="card-header">
           <span>参数管理</span>
-          <el-button type="primary" @click="openCreateDialog">
-            <el-icon><Plus /></el-icon> 新建参数
-          </el-button>
+          <div class="header-actions">
+            <el-input
+              v-model="keyword"
+              placeholder="搜索参数名称..."
+              clearable
+              style="width: 240px; margin-right: 12px"
+              @clear="handleSearch"
+              @keyup.enter="handleSearch"
+            />
+            <el-button @click="handleSearch">搜索</el-button>
+            <el-button
+              v-if="selectedIds.length > 0"
+              type="danger"
+              @click="handleBatchDelete"
+            >
+              <el-icon><Delete /></el-icon> 批量删除 ({{ selectedIds.length }})
+            </el-button>
+            <el-button type="primary" @click="openCreateDialog">
+              <el-icon><Plus /></el-icon> 新建参数
+            </el-button>
+          </div>
         </div>
       </template>
 
-      <el-table :data="parameters" stripe v-loading="loading">
+      <el-table :data="parameters" stripe v-loading="loading" @selection-change="onSelectionChange">
+        <el-table-column type="selection" width="50" />
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="paramName" label="参数名称" min-width="160" />
         <el-table-column label="类型" width="120">
@@ -53,6 +72,19 @@
           </template>
         </el-table-column>
       </el-table>
+      <el-pagination
+        v-if="total > 0"
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[5, 10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        background
+        small
+        style="margin-top: 16px; justify-content: flex-end;"
+        @current-change="handlePageChange"
+        @size-change="handlePageChange"
+      />
     </el-card>
 
     <!-- Create/Edit Dialog -->
@@ -201,9 +233,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import Layout from '@/components/common/Layout.vue'
 import {
   listParameters,
+  listParametersPage,
   createParameter,
   updateParameter,
   deleteParameter,
+  deleteParameterBatch,
   resolveParams,
   executeBuiltinSql,
   type Parameter,
@@ -212,6 +246,11 @@ import {
 
 const parameters = ref<Parameter[]>([])
 const loading = ref(false)
+const keyword = ref('')
+const selectedIds = ref<number[]>([])
+const page = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 const dialogVisible = ref(false)
 const isEditing = ref(false)
 const saving = ref(false)
@@ -534,13 +573,27 @@ function formatTime(t: string) {
   return t.slice(0, 16).replace('T', ' ')
 }
 
+function onSelectionChange(rows: Parameter[]) {
+  selectedIds.value = rows.map(r => r.id)
+}
+
+function handleSearch() {
+  page.value = 1
+  loadParameters()
+}
+
 async function loadParameters() {
   loading.value = true
   try {
-    const res = await listParameters()
-    parameters.value = res.data
+    const res = await listParametersPage(keyword.value || undefined, page.value, pageSize.value)
+    parameters.value = res.data.data
+    total.value = res.data.total
   } catch { /* ignore */ }
   finally { loading.value = false }
+}
+
+function handlePageChange() {
+  loadParameters()
 }
 
 function openCreateDialog() {
@@ -614,6 +667,21 @@ async function handleDelete(param: Parameter) {
   } catch { /* cancelled */ }
 }
 
+async function handleBatchDelete() {
+  const count = selectedIds.value.length
+  try {
+    await ElMessageBox.confirm(`确定删除选中的 ${count} 个参数吗？`, '提示')
+    await deleteParameterBatch(selectedIds.value)
+    ElMessage.success(`成功删除 ${count} 个参数`)
+    selectedIds.value = []
+    await loadParameters()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error(e.message || '批量删除失败')
+    }
+  }
+}
+
 async function handleToggleEnabled(param: Parameter, val: boolean) {
   togglingId.value = param.id
   try {
@@ -634,6 +702,10 @@ onMounted(loadParameters)
 .card-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+.header-actions {
+  display: flex;
   align-items: center;
 }
 

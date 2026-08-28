@@ -50,4 +50,9 @@ public class ScheduleController {
         scheduleService.toggleEnabled(id, enabled);
         return Result.success();
     }
+
+    @PostMapping("/{id}/trigger")
+    public Result<Long> trigger(@PathVariable Long id) {
+        return Result.success(scheduleService.triggerSchedule(id));
+    }
 }

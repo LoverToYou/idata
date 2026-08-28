@@ -1,5 +1,9 @@
 package com.idata.service.workflow;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.idata.dto.PageResult;
 import com.idata.dto.WorkflowRequest;
 import com.idata.dto.WorkflowVO;
 import com.idata.entity.WorkflowDefinition;
@@ -19,10 +23,36 @@ public class WorkflowService {
     }
 
     public List<WorkflowVO> listAll() {
-        return workflowDefinitionMapper.selectList(null)
+        return listAll(null);
+    }
+
+    public List<WorkflowVO> listAll(String keyword) {
+        LambdaQueryWrapper<WorkflowDefinition> wrapper = new LambdaQueryWrapper<WorkflowDefinition>()
+                .orderByDesc(WorkflowDefinition::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(WorkflowDefinition::getName, keyword);
+        }
+        return workflowDefinitionMapper.selectList(wrapper)
                 .stream()
                 .map(this::toListVO)
                 .collect(Collectors.toList());
+    }
+
+    public PageResult<WorkflowVO> listPage(String keyword, int pageNum, int pageSize) {
+        LambdaQueryWrapper<WorkflowDefinition> wrapper = new LambdaQueryWrapper<WorkflowDefinition>()
+                .orderByDesc(WorkflowDefinition::getUpdatedAt);
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(WorkflowDefinition::getName, keyword);
+        }
+        Page<WorkflowDefinition> page = new Page<>(pageNum, pageSize);
+        Page<WorkflowDefinition> result = workflowDefinitionMapper.selectPage(page, wrapper);
+        List<WorkflowVO> list = result.getRecords().stream().map(this::toListVO).collect(Collectors.toList());
+        PageResult<WorkflowVO> pr = new PageResult<>();
+        pr.setData(list);
+        pr.setTotal(result.getTotal());
+        pr.setPage((int) result.getCurrent());
+        pr.setPageSize((int) result.getSize());
+        return pr;
     }
 
     public WorkflowVO getById(Long id) {
@@ -62,6 +92,11 @@ public class WorkflowService {
             throw new IllegalArgumentException("工作流不存在: " + id);
         }
         workflowDefinitionMapper.deleteById(id);
+    }
+
+    public void deleteBatch(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return;
+        workflowDefinitionMapper.deleteByIds(ids);
     }
 
     public WorkflowVO publish(Long id) {

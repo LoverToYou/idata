@@ -39,3 +39,16 @@ project-status-snapshot
 backend/.vite/
 frontend/test-results/
 .claude/
+
+# Local runtime & process
+*.pid
+backend/lib/
+
+# Dev/test artifacts
+editor-toolbar
+page-snapshot.md
+snapshot.yml
+test-reports/
+udf-dist/
+schedule-page.png
+udf-list-page.png
