@@ -4,25 +4,11 @@
   </div>
 </template>
 
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body {
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-#app {
-  height: 100%;
-}
-
+/* 只保留最基础的重置，主题与组件样式见 @/styles/theme.css */
+#app,
 #app-container {
   height: 100%;
 }

@@ -22,7 +22,12 @@ export default defineConfig({
     Components({
       resolvers: [ElementPlusResolver()],
     }),
-    monacoPlugin({ languageWorkers: ['json', 'editorWorkerService'] }),
+    monacoPlugin({
+      languageWorkers: ['json', 'editorWorkerService'],
+      // 默认输出目录会多拼一层 base（dist/api/monacoeditorwork），与注入的
+      // 绝对地址 /api/monacoeditorwork 不一致，这里固定输出到 dist/monacoeditorwork
+      customDistPath: (root: string, outDir: string) => resolve(root, outDir, 'monacoeditorwork'),
+    }),
   ],
   resolve: {
     alias: {
@@ -44,7 +49,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8088',
+        target: 'http://localhost:18088',
         changeOrigin: true,
         bypass: (req) => {
           if (!req.url) return;

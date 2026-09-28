@@ -821,7 +821,7 @@ onBeforeUnmount(() => {
   overflow-y: auto;
 }
 .col-tag { font-size: 12px; }
-.col-type { color: #909399; }
+.col-type { color: var(--text-sub); }
 .script-editor-card { flex-shrink: 0; }
 .monaco-container {
   width: 100%;

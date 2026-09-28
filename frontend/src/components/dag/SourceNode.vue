@@ -3,7 +3,7 @@
     <Handle type="target" :position="Position.Left" :isConnectable="connectable" />
     <div class="node-body">
       <div class="node-header">
-        <el-icon :size="16" color="#409eff"><Reading /></el-icon>
+        <el-icon :size="16" color="var(--primary)"><Reading /></el-icon>
         <span class="node-label">{{ label || data?.label }}</span>
       </div>
       <div class="node-meta">

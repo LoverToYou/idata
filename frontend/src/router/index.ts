@@ -119,6 +119,54 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/masking-rule/MaskingRuleList.vue'),
     meta: { title: '脱敏规则管理' },
   },
+  {
+    path: '/report',
+    name: 'Report',
+    component: () => import('@/views/report/ReportList.vue'),
+    meta: { title: '报表管理' },
+  },
+  {
+    path: '/report/create',
+    name: 'ReportCreate',
+    component: () => import('@/views/report/ReportEditor.vue'),
+    meta: { title: '新建报表' },
+  },
+  {
+    path: '/report/:id/edit',
+    name: 'ReportEdit',
+    component: () => import('@/views/report/ReportEditor.vue'),
+    meta: { title: '编辑报表' },
+  },
+  {
+    path: '/report/:id/view',
+    name: 'ReportView',
+    component: () => import('@/views/report/ReportDetail.vue'),
+    meta: { title: '报表查看' },
+  },
+  {
+    path: '/dashboards',
+    name: 'DashboardListPage',
+    component: () => import('@/views/report/DashboardList.vue'),
+    meta: { title: '数据看板' },
+  },
+  {
+    path: '/dashboards/create',
+    name: 'DashboardCreate',
+    component: () => import('@/views/report/DashboardEditor.vue'),
+    meta: { title: '新建看板' },
+  },
+  {
+    path: '/dashboards/:id/edit',
+    name: 'DashboardEdit',
+    component: () => import('@/views/report/DashboardEditor.vue'),
+    meta: { title: '编辑看板' },
+  },
+  {
+    path: '/dashboards/:id/view',
+    name: 'DashboardView',
+    component: () => import('@/views/report/DashboardView.vue'),
+    meta: { title: '数据大屏' },
+  },
 ]
 
 const router = createRouter({

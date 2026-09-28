@@ -3,7 +3,7 @@
     <Handle type="target" :position="Position.Left" :isConnectable="connectable" />
     <div class="node-body">
       <div class="node-header">
-        <el-icon :size="16" color="#67c23a"><EditPen /></el-icon>
+        <el-icon :size="16" color="var(--success)"><EditPen /></el-icon>
         <span class="node-label">{{ label || data?.label }}</span>
       </div>
       <div class="node-meta">
@@ -52,7 +52,7 @@ withDefaults(defineProps<Props>(), {
 }
 
 .sink-node.selected {
-  border-color: #67c23a;
+  border-color: var(--success);
   box-shadow: 0 0 0 2px rgba(103, 194, 58, 0.3);
 }
 

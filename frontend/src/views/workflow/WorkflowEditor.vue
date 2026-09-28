@@ -499,7 +499,7 @@ async function handleRun() {
   align-items: center;
   padding: 8px 16px;
   background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid var(--border);
   border-radius: 4px;
   margin-bottom: 8px;
   flex-shrink: 0;
@@ -532,7 +532,7 @@ async function handleRun() {
 
 .unsaved-badge {
   font-size: 12px;
-  color: #e6a23c;
+  color: var(--warning);
   background: #fdf6ec;
   border: 1px solid #faecd8;
   padding: 2px 8px;
@@ -569,13 +569,13 @@ async function handleRun() {
 .panel-title {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-title);
   margin: 0;
 }
 
 .panel-hint {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-sub);
   margin: 0;
 }
 
@@ -584,7 +584,7 @@ async function handleRun() {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border);
   border-radius: 6px;
   cursor: grab;
   font-size: 13px;
@@ -598,7 +598,7 @@ async function handleRun() {
 }
 
 .node-template-card.source {
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--primary);
 }
 
 .node-template-card.source:hover {
@@ -607,7 +607,7 @@ async function handleRun() {
 }
 
 .node-template-card.sink {
-  border-left: 3px solid #67c23a;
+  border-left: 3px solid var(--success);
 }
 
 .node-template-card.sink:hover {
@@ -618,12 +618,12 @@ async function handleRun() {
 /* Canvas (Center) */
 .canvas-wrapper {
   flex: 1;
-  background: #fafafa;
+  background: var(--bg-muted);
   border-radius: 4px;
   overflow: hidden;
   position: relative;
   min-height: 400px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border);
 }
 
 .vue-flow-instance {
@@ -654,7 +654,7 @@ async function handleRun() {
   height: 500px;
   overflow: auto;
   background: #f8f9fa;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 12px;
   margin: 0;

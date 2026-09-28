@@ -1,0 +1,335 @@
+<template>
+  <Layout>
+    <el-card shadow="hover">
+      <template #header>
+        <div class="card-header">
+          <span>{{ isEditing ? '编辑报表' : '新建报表' }}</span>
+          <div>
+            <el-button @click="router.push('/report')">返回列表</el-button>
+            <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+          </div>
+        </div>
+      </template>
+
+      <el-form :model="form" label-width="90px">
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item label="报表名称" required>
+              <el-input v-model="form.name" placeholder="例：每日任务成功率" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="数据源" required>
+              <el-select v-model="form.datasourceId" placeholder="选择数据源" style="width: 100%">
+                <el-option v-for="ds in datasources" :key="ds.id" :label="ds.name" :value="ds.id as number" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="自动刷新">
+              <el-input-number v-model="form.refreshInterval" :min="0" :max="86400" controls-position="right" style="width: 140px" />
+              <span class="hint-inline">秒（0=不自动）</span>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="描述">
+          <el-input v-model="form.description" placeholder="选填" />
+        </el-form-item>
+        <el-form-item label="所属文件夹">
+          <el-tree-select
+            v-model="form.folderId"
+            :data="folderOptions"
+            check-strictly
+            clearable
+            default-expand-all
+            placeholder="未分组"
+            style="width: 320px"
+          />
+        </el-form-item>
+
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="查询 SQL" required>
+              <div class="sql-editor-wrapper">
+                <div ref="sqlContainer" class="sql-editor"></div>
+              </div>
+              <div class="hint-block">
+                支持参数管理中的参数占位：<code v-pre>${参数名}</code>；结果集用于报表展示。
+              </div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="展示形式">
+              <el-radio-group v-model="form.chartType">
+                <el-radio-button value="TABLE">表格</el-radio-button>
+                <el-radio-button value="LINE">折线图</el-radio-button>
+                <el-radio-button value="BAR">柱状图</el-radio-button>
+                <el-radio-button value="PIE">饼图</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="form.chartType !== 'TABLE'" label="字段映射">
+              <div class="field-mapping">
+                <el-select v-model="config.xField" placeholder="X / 分类字段" size="small" style="width: 100%">
+                  <el-option v-for="c in columns" :key="c" :label="c" :value="c" />
+                </el-select>
+                <el-select v-model="config.yFields" multiple placeholder="Y / 数值字段" size="small" style="width: 100%">
+                  <el-option v-for="c in columns" :key="c" :label="c" :value="c" />
+                </el-select>
+                <el-select v-if="form.chartType === 'LINE' || form.chartType === 'BAR'" v-model="config.seriesField" clearable placeholder="分组字段（可选）" size="small" style="width: 100%">
+                  <el-option v-for="c in columns" :key="c" :label="c" :value="c" />
+                </el-select>
+                <el-input-number v-model="config.limit" :min="0" :max="5000" size="small" controls-position="right" style="width: 100%" placeholder="显示条数上限(0=全部)" />
+              </div>
+            </el-form-item>
+            <div class="preview-actions">
+              <el-button type="primary" plain :loading="previewing" @click="handlePreview">运行预览</el-button>
+              <span v-if="result" class="hint-inline">
+                {{ result.rows.length }} 行 / {{ result.elapsedMs }} ms
+              </span>
+            </div>
+            <EChart v-if="chartOption" :option="chartOption" height="300px" />
+            <el-empty v-else-if="!result" description="点击「运行预览」查看结果" :image-size="70" />
+          </el-col>
+        </el-row>
+      </el-form>
+    </el-card>
+
+    <el-card v-if="result" shadow="hover" class="result-card">
+      <template #header>
+        <div class="card-header"><span>预览结果（前 {{ Math.min(result.rows.length, 100) }} 行）</span></div>
+      </template>
+      <el-table :data="result.rows.slice(0, 100)" stripe height="320" border>
+        <el-table-column v-for="c in result.columns" :key="c" :prop="c" :label="c" min-width="120" show-overflow-tooltip />
+      </el-table>
+    </el-card>
+  </Layout>
+</template>
+
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import * as monaco from 'monaco-editor'
+import Layout from '@/components/common/Layout.vue'
+import EChart from '@/components/chart/EChart.vue'
+import { listDatasources } from '@/api/datasource'
+import { createReport, getReport, moveReport, previewReport, updateReport, type SqlResult } from '@/api/report'
+import { buildFolderTree, listFolders, type FolderItem } from '@/api/folder'
+import { buildChartOption, parseChartConfig, type ChartConfig } from '@/utils/reportChart'
+import type { DatasourceConfig } from '@/types'
+
+const route = useRoute()
+const router = useRouter()
+
+const isEditing = computed(() => !!route.params.id)
+const datasources = ref<DatasourceConfig[]>([])
+const saving = ref(false)
+const previewing = ref(false)
+const result = ref<SqlResult | null>(null)
+const sqlContainer = ref<HTMLDivElement>()
+let editor: monaco.editor.IStandaloneCodeEditor | null = null
+
+const form = reactive({
+  name: '',
+  description: '',
+  datasourceId: null as number | null,
+  sqlContent: 'SELECT 1 AS demo_value',
+  chartType: 'TABLE',
+  refreshInterval: 0,
+  folderId: null as number | null,
+})
+
+const config = reactive<ChartConfig>({ xField: undefined, yFields: [], seriesField: undefined, limit: 0 })
+
+const folders = ref<FolderItem[]>([])
+const folderOptions = computed(() => buildFolderTree(folders.value))
+
+const columns = computed(() => result.value?.columns || [])
+const chartOption = computed(() =>
+  result.value ? buildChartOption(form.chartType, result.value.columns, result.value.rows, config) : null,
+)
+
+function initEditor() {
+  if (!sqlContainer.value) return
+  editor = monaco.editor.create(sqlContainer.value, {
+    value: form.sqlContent,
+    language: 'sql',
+    theme: 'vs',
+    fontSize: 13,
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+  })
+  editor.onDidChangeModelContent(() => {
+    form.sqlContent = editor!.getValue()
+  })
+}
+
+async function loadDatasources() {
+  try {
+    const res = await listDatasources()
+    datasources.value = res.data || []
+  } catch {
+    /* ignore */
+  }
+}
+
+async function loadFolders() {
+  try {
+    const res = await listFolders('REPORT')
+    folders.value = res.data || []
+  } catch {
+    /* ignore */
+  }
+}
+
+async function loadReport(id: number) {
+  const res = await getReport(id)
+  const data = res.data
+  form.name = data.name
+  form.description = data.description || ''
+  form.datasourceId = data.datasourceId
+  form.sqlContent = data.sqlContent
+  form.chartType = data.chartType || 'TABLE'
+  form.refreshInterval = data.refreshInterval || 0
+  form.folderId = data.folderId ?? null
+  Object.assign(config, parseChartConfig(data.chartConfig))
+  config.yFields = config.yFields || []
+  editor?.setValue(data.sqlContent)
+}
+
+async function handlePreview() {
+  if (!form.datasourceId) {
+    ElMessage.warning('请选择数据源')
+    return
+  }
+  if (!form.sqlContent.trim()) {
+    ElMessage.warning('请输入查询 SQL')
+    return
+  }
+  previewing.value = true
+  try {
+    const res = await previewReport(form.datasourceId, form.sqlContent)
+    result.value = res.data
+    const cols = res.data.columns || []
+    if (!config.xField || !cols.includes(config.xField)) config.xField = cols[0]
+    if (!config.yFields || config.yFields.length === 0 || !config.yFields.every((f) => cols.includes(f))) {
+      config.yFields = cols.filter((c) => res.data.rows.some((r) => typeof r[c] === 'number')).slice(0, 1)
+    }
+    ElMessage.success(`查询完成：${res.data.rows.length} 行，耗时 ${res.data.elapsedMs} ms`)
+  } catch (e: any) {
+    ElMessage.error(e.message || '查询失败')
+  } finally {
+    previewing.value = false
+  }
+}
+
+async function handleSave() {
+  if (!form.name.trim()) {
+    ElMessage.warning('请输入报表名称')
+    return
+  }
+  if (!form.datasourceId) {
+    ElMessage.warning('请选择数据源')
+    return
+  }
+  if (!form.sqlContent.trim()) {
+    ElMessage.warning('请输入查询 SQL')
+    return
+  }
+  saving.value = true
+  try {
+    const payload = {
+      name: form.name,
+      description: form.description,
+      datasourceId: form.datasourceId,
+      sqlContent: form.sqlContent,
+      chartType: form.chartType,
+      chartConfig: JSON.stringify({ ...config, yFields: config.yFields || [] }),
+      refreshInterval: form.refreshInterval,
+      folderId: form.folderId,
+    }
+    if (isEditing.value) {
+      await updateReport({ ...payload, id: Number(route.params.id) })
+      await moveReport(Number(route.params.id), form.folderId ?? null)
+      ElMessage.success('报表已更新')
+    } else {
+      await createReport(payload)
+      ElMessage.success('报表已创建')
+    }
+    router.push('/report')
+  } catch (e: any) {
+    ElMessage.error(e.message || '保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadDatasources()
+  await loadFolders()
+  initEditor()
+  if (isEditing.value) {
+    try {
+      await loadReport(Number(route.params.id))
+    } catch (e: any) {
+      ElMessage.error(e.message || '加载报表失败')
+    }
+  }
+})
+
+onBeforeUnmount(() => {
+  editor?.dispose()
+  editor = null
+})
+</script>
+
+<style scoped>
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sql-editor-wrapper {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.sql-editor {
+  height: 300px;
+  width: 100%;
+}
+.field-mapping {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.hint-inline {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin-left: 8px;
+}
+.hint-block {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  width: 100%;
+}
+.hint-block code {
+  background: var(--bg-muted);
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--primary);
+}
+.result-card {
+  margin-top: 16px;
+}
+</style>

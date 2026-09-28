@@ -67,6 +67,8 @@ export function createSchedule(data: {
   workflowId: number
   cronExpression: string
   enabled?: boolean
+  retryCount?: number
+  retryIntervalSeconds?: number
 }): Promise<ApiResult<any>> {
   return request.post('/schedule/create', data)
 }

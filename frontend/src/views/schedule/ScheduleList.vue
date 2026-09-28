@@ -19,9 +19,15 @@
             {{ row.workflowName || `工作流 #${row.workflowId}` }}
           </template>
         </el-table-column>
-        <el-table-column prop="cronExpression" label="Cron 表达式" width="180">
+        <el-table-column prop="cronExpression" label="Cron 表达式" width="170">
           <template #default="{ row }">
             <el-tag effect="plain" type="info">{{ row.cronExpression }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="失败重试" width="140">
+          <template #default="{ row }">
+            <span v-if="(row.retryCount || 0) > 0">{{ row.retryCount }} 次 / 间隔 {{ row.retryIntervalSeconds || 60 }}s</span>
+            <span v-else class="muted-text">不重试</span>
           </template>
         </el-table-column>
         <el-table-column label="启用" width="90">
@@ -66,6 +72,18 @@
         </el-form-item>
         <el-form-item label="Cron 表达式" prop="cronExpression">
           <el-input v-model="form.cronExpression" placeholder="例：0 0 2 * * ?" />
+        </el-form-item>
+        <el-form-item label="失败自动重试">
+          <div class="retry-row">
+            <span>重试</span>
+            <el-input-number v-model="form.retryCount" :min="0" :max="100" controls-position="right" style="width: 130px" />
+            <span>次，每次间隔</span>
+            <el-input-number v-model="form.retryIntervalSeconds" :min="1" :max="86400" :disabled="(form.retryCount || 0) === 0" controls-position="right" style="width: 150px" />
+            <span>秒</span>
+          </div>
+        </el-form-item>
+        <el-form-item>
+          <div class="retry-hint">设为 0 表示不重试；>0 时若本次调度的工作流执行失败，将按配置自动重跑并生成新实例。</div>
         </el-form-item>
         <el-form-item label="启用">
           <el-switch v-model="form.enabled" />
@@ -114,6 +132,8 @@ const form = ref({
   workflowId: null as number | null,
   cronExpression: '',
   enabled: true,
+  retryCount: 0,
+  retryIntervalSeconds: 60,
 })
 
 const formRules = {
@@ -139,7 +159,7 @@ async function loadData() {
 function openCreateDialog() {
   isEditing.value = false
   currentId.value = null
-  form.value = { workflowId: null, cronExpression: '', enabled: true }
+  form.value = { workflowId: null, cronExpression: '', enabled: true, retryCount: 0, retryIntervalSeconds: 60 }
   dialogVisible.value = true
 }
 
@@ -150,6 +170,8 @@ function openEditDialog(row: any) {
     workflowId: row.workflowId,
     cronExpression: row.cronExpression,
     enabled: row.enabled,
+    retryCount: row.retryCount ?? 0,
+    retryIntervalSeconds: row.retryIntervalSeconds ?? 60,
   }
   dialogVisible.value = true
 }
@@ -235,13 +257,27 @@ onMounted(loadData)
 }
 .cron-hint {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-sub);
   line-height: 1.6;
 }
 .cron-hint code {
-  background: #f4f4f5;
+  background: var(--bg-muted);
   padding: 1px 4px;
   border-radius: 3px;
-  color: #409eff;
+  color: var(--primary);
+}
+.muted-text {
+  color: var(--text-sub);
+}
+.retry-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.retry-hint {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.6;
 }
 </style>

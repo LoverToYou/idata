@@ -470,7 +470,7 @@ onMounted(() => {
 }
 .func-name {
   font-weight: 500;
-  color: #409eff;
+  color: var(--primary);
 }
 .upload-row {
   display: flex;
@@ -482,7 +482,7 @@ onMounted(() => {
   font-size: 13px;
 }
 .muted {
-  color: #909399;
+  color: var(--text-sub);
 }
 .picker-toolbar {
   display: flex;
@@ -494,12 +494,12 @@ onMounted(() => {
 }
 .empty-tip {
   text-align: center;
-  color: #909399;
+  color: var(--text-sub);
   font-size: 13px;
   padding: 24px 0;
 }
 .link {
-  color: #409eff;
+  color: var(--primary);
   cursor: pointer;
   margin: 0 4px;
 }

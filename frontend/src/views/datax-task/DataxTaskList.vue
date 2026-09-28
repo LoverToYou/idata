@@ -333,7 +333,7 @@ onMounted(async () => {
   font-size: 13px;
 }
 .no-config {
-  color: #c0c4cc;
+  color: var(--text-faint);
   font-style: italic;
 }
 .json-preview {

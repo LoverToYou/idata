@@ -45,7 +45,7 @@
             <span v-else>
               <el-tag size="small" type="info" effect="plain">{{ row.expression }}</el-tag>
               <div class="table-result-box">
-                <el-icon :size="12" style="color: #909399; flex-shrink: 0;"><Right /></el-icon>
+                <el-icon :size="12" style="color: var(--text-sub); flex-shrink: 0;"><Right /></el-icon>
                 <span class="table-result-box__value">{{ evalDynamic(row.expression) }}</span>
               </div>
             </span>
@@ -710,49 +710,49 @@ onMounted(loadParameters)
 }
 
 .param-name {
-  background: #f5f7fa;
+  background: var(--bg-muted);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 13px;
-  color: #409eff;
+  color: var(--primary);
 }
 
 .param-value {
-  color: #606266;
+  color: var(--text-body);
   font-size: 13px;
 }
 
 .form-hint {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-sub);
   margin-top: 4px;
 }
 
 .form-hint code {
-  background: #f5f7fa;
+  background: var(--bg-muted);
   padding: 1px 4px;
   border-radius: 2px;
-  color: #409eff;
+  color: var(--primary);
 }
 
 .result-box {
   margin-top: 8px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-muted);
   padding: 8px 12px;
 }
 
 .result-box__label {
   font-size: 11px;
-  color: #909399;
+  color: var(--text-sub);
   margin-bottom: 4px;
 }
 
 .result-box__value {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-title);
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
 }
 
@@ -765,7 +765,7 @@ onMounted(loadParameters)
 
 .table-result-box__value {
   font-size: 13px;
-  color: #303133;
+  color: var(--text-title);
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
   font-weight: 500;
 }
@@ -777,13 +777,13 @@ onMounted(loadParameters)
 .preview-label {
   font-size: 13px;
   font-weight: 600;
-  color: #606266;
+  color: var(--text-body);
   margin-bottom: 6px;
 }
 
 .preview-sql {
-  background: #f5f7fa;
-  border: 1px solid #e4e7ed;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 12px;
   font-size: 13px;
@@ -810,7 +810,7 @@ onMounted(loadParameters)
 
 .quick-exprs__label {
   font-size: 11px;
-  color: #c0c4cc;
+  color: var(--text-faint);
   flex-shrink: 0;
 }
 
@@ -851,10 +851,10 @@ onMounted(loadParameters)
 
 .sql-test-result {
   margin-top: 10px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 10px;
-  background: #fafafa;
+  background: var(--bg-muted);
 }
 
 .sql-test-result .result-meta {
@@ -863,12 +863,12 @@ onMounted(loadParameters)
   gap: 8px;
   margin-bottom: 8px;
   font-size: 12px;
-  color: #909399;
+  color: var(--text-sub);
 }
 
 .sql-test-result .result-elapsed {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-sub);
 }
 
 .sql-test-table-wrapper {
@@ -878,7 +878,7 @@ onMounted(loadParameters)
 
 .sql-test-ok {
   font-size: 13px;
-  color: #67c23a;
+  color: var(--success);
   padding: 8px 0;
 }
 </style>

@@ -275,10 +275,10 @@ const stats = computed<StatCard[]>(() => {
   const list = allInstances.value
   if (list.length === 0) {
     return [
-      { label: '总工作流数', value: 0, icon: 'Document', color: '#409eff', bgColor: '#ecf5ff' },
-      { label: '运行中实例', value: 0, icon: 'VideoPlay', color: '#e6a23c', bgColor: '#fdf6ec' },
-      { label: '本周失败', value: 0, icon: 'CircleCloseFilled', color: '#f56c6c', bgColor: '#fef0f0' },
-      { label: '平均耗时', value: '0s', icon: 'Timer', color: '#67c23a', bgColor: '#f0f9eb' },
+      { label: '总工作流数', value: 0, icon: 'Document', color: 'var(--primary)', bgColor: 'var(--primary-light)' },
+      { label: '运行中实例', value: 0, icon: 'VideoPlay', color: 'var(--warning)', bgColor: '#fdf6ec' },
+      { label: '本周失败', value: 0, icon: 'CircleCloseFilled', color: 'var(--danger)', bgColor: '#fef0f0' },
+      { label: '平均耗时', value: '0s', icon: 'Timer', color: 'var(--success)', bgColor: '#f0f9eb' },
     ]
   }
 
@@ -304,10 +304,10 @@ const stats = computed<StatCard[]>(() => {
   }
 
   return [
-    { label: '总工作流数', value: uniqueWorkflows, icon: 'Document', color: '#409eff', bgColor: '#ecf5ff' },
-    { label: '运行中实例', value: running, icon: 'VideoPlay', color: '#e6a23c', bgColor: '#fdf6ec' },
-    { label: '本周失败', value: failedThisWeek, icon: 'CircleCloseFilled', color: '#f56c6c', bgColor: '#fef0f0' },
-    { label: '平均耗时', value: avgDuration || '-', icon: 'Timer', color: '#67c23a', bgColor: '#f0f9eb' },
+    { label: '总工作流数', value: uniqueWorkflows, icon: 'Document', color: 'var(--primary)', bgColor: 'var(--primary-light)' },
+    { label: '运行中实例', value: running, icon: 'VideoPlay', color: 'var(--warning)', bgColor: '#fdf6ec' },
+    { label: '本周失败', value: failedThisWeek, icon: 'CircleCloseFilled', color: 'var(--danger)', bgColor: '#fef0f0' },
+    { label: '平均耗时', value: avgDuration || '-', icon: 'Timer', color: 'var(--success)', bgColor: '#f0f9eb' },
   ]
 })
 
@@ -564,13 +564,13 @@ onUnmounted(() => {
 .stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: #303133;
+  color: var(--text-title);
   line-height: 1.2;
 }
 
 .stat-label {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-sub);
 }
 
 .table-card {
@@ -600,24 +600,24 @@ onUnmounted(() => {
 }
 
 .node-log-card {
-  border-left: 3px solid #e4e7ed;
+  border-left: 3px solid var(--border);
   border-radius: 4px;
 }
 
 .node-log-card.status-success {
-  border-left-color: #67c23a;
+  border-left-color: var(--success);
 }
 
 .node-log-card.status-failed {
-  border-left-color: #f56c6c;
+  border-left-color: var(--danger);
 }
 
 .node-log-card.status-running {
-  border-left-color: #e6a23c;
+  border-left-color: var(--warning);
 }
 
 .node-log-card.status-waiting {
-  border-left-color: #909399;
+  border-left-color: var(--text-sub);
 }
 
 .node-log-card :deep(.el-card__body) {
@@ -634,7 +634,7 @@ onUnmounted(() => {
 .log-node-name {
   font-weight: 600;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-title);
 }
 
 .log-descriptions {
@@ -643,13 +643,13 @@ onUnmounted(() => {
 
 .log-descriptions :deep(.el-descriptions__label) {
   width: 90px;
-  color: #909399;
+  color: var(--text-sub);
   font-weight: 500;
 }
 
 .node-id-code {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-sub);
 }
 
 .log-path {
@@ -658,12 +658,12 @@ onUnmounted(() => {
 }
 
 .duration-short {
-  color: #67c23a;
+  color: var(--success);
   font-weight: 500;
 }
 
 .duration-long {
-  color: #e6a23c;
+  color: var(--warning);
   font-weight: 500;
 }
 
@@ -679,25 +679,25 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
-  background: #f5f7fa;
+  background: var(--bg-muted);
   user-select: none;
   transition: background 0.15s;
 }
 
 .log-collapse-toggle:hover {
-  background: #e4e7ed;
+  background: var(--border);
 }
 
 .log-collapse-arrow {
   font-size: 10px;
-  color: #909399;
+  color: var(--text-sub);
   flex-shrink: 0;
 }
 
 .log-collapse-label {
   font-size: 12px;
   font-weight: 600;
-  color: #606266;
+  color: var(--text-body);
 }
 
 .log-datax-json {
@@ -726,7 +726,7 @@ onUnmounted(() => {
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
   line-height: 1.5;
-  color: #606266;
+  color: var(--text-body);
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 300px;
@@ -740,7 +740,7 @@ onUnmounted(() => {
 .log-error-label {
   font-size: 12px;
   font-weight: 500;
-  color: #f56c6c;
+  color: var(--danger);
   margin-bottom: 4px;
 }
 
@@ -753,7 +753,7 @@ onUnmounted(() => {
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: #f56c6c;
+  color: var(--danger);
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 200px;

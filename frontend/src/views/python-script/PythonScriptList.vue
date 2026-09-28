@@ -455,13 +455,13 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 .muted {
-  color: #909399;
+  color: var(--text-sub);
   font-size: 12px;
 }
 .monaco-container {
   width: 100%;
   height: 320px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--border);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -476,7 +476,7 @@ onBeforeUnmount(() => {
 .detail-label {
   font-size: 13px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-title);
   margin-bottom: 6px;
 }
 .output-pre {
