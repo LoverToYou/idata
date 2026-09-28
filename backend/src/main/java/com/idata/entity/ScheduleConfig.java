@@ -17,6 +17,12 @@ public class ScheduleConfig {
 
     private Boolean enabled;
 
+    /** 失败自动重试次数，0=不重试 */
+    private Integer retryCount;
+
+    /** 失败重试间隔(秒) */
+    private Integer retryIntervalSeconds;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

@@ -57,6 +57,7 @@ public class WorkflowSchedulerService {
             JobDetail job = JobBuilder.newJob(WorkflowTriggerJob.class)
                     .withIdentity(jobKey)
                     .usingJobData("workflowId", config.getWorkflowId())
+                    .usingJobData("scheduleId", config.getId())
                     .storeDurably()
                     .build();
             Trigger trigger = TriggerBuilder.newTrigger()

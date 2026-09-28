@@ -11,6 +11,8 @@ public class ScheduleVO {
     private String workflowName;
     private String cronExpression;
     private Boolean enabled;
+    private Integer retryCount;
+    private Integer retryIntervalSeconds;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

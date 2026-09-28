@@ -72,6 +72,8 @@ public class ScheduleService {
         config.setWorkflowId(req.getWorkflowId());
         config.setCronExpression(req.getCronExpression());
         config.setEnabled(req.getEnabled() != null ? req.getEnabled() : true);
+        config.setRetryCount(req.getRetryCount() != null ? req.getRetryCount() : 0);
+        config.setRetryIntervalSeconds(req.getRetryIntervalSeconds() != null ? req.getRetryIntervalSeconds() : 60);
         scheduleConfigMapper.insert(config);
         workflowSchedulerService.register(config);
         return toVO(config, workflow.getName());
@@ -105,6 +107,14 @@ public class ScheduleService {
 
         if (req.getEnabled() != null) {
             config.setEnabled(req.getEnabled());
+        }
+
+        if (req.getRetryCount() != null) {
+            config.setRetryCount(req.getRetryCount());
+        }
+
+        if (req.getRetryIntervalSeconds() != null) {
+            config.setRetryIntervalSeconds(req.getRetryIntervalSeconds());
         }
 
         scheduleConfigMapper.updateById(config);
@@ -159,6 +169,8 @@ public class ScheduleService {
         vo.setWorkflowName(workflowName);
         vo.setCronExpression(config.getCronExpression());
         vo.setEnabled(config.getEnabled());
+        vo.setRetryCount(config.getRetryCount());
+        vo.setRetryIntervalSeconds(config.getRetryIntervalSeconds());
         vo.setCreatedAt(config.getCreatedAt());
         vo.setUpdatedAt(config.getUpdatedAt());
         return vo;
