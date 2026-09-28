@@ -22,7 +22,7 @@ else
     PROJECT_ROOT="${SCRIPT_DIR}"
 fi
 
-API_BASE="http://localhost:8088/api"
+API_BASE="http://localhost:18088/api"
 FRONTEND_URL="http://localhost:5173"
 LOG_DIR="${PROJECT_ROOT}/logs"
 REPORT_DIR="${PROJECT_ROOT}/test-reports"
@@ -87,14 +87,14 @@ preflight_check() {
     local frontend_pid
     local mysql_pid
 
-    backend_pid=$(check_port 8088)
+    backend_pid=$(check_port 18088)
     frontend_pid=$(check_port 5173)
     mysql_pid=$(check_port 3306)
 
     if [ -n "$backend_pid" ]; then
-        pass "后端服务运行中 (PID: $backend_pid, 端口 8088)"
+        pass "后端服务运行中 (PID: $backend_pid, 端口 18088)"
     else
-        fail "后端服务未运行 (端口 8088)"
+        fail "后端服务未运行 (端口 18088)"
     fi
 
     if [ -n "$frontend_pid" ]; then

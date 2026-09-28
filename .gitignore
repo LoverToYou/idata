@@ -8,6 +8,7 @@ backend/target/
 frontend/node_modules/
 node_modules/
 frontend/dist/
+backend/src/main/resources/static/
 
 # IDE
 .idea/

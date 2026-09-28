@@ -218,32 +218,32 @@
 
 ```bash
 # 1. 创建数据源
-curl -X POST http://localhost:8088/api/datasource/create \
+curl -X POST http://localhost:18088/api/datasource/create \
   -H "Content-Type: application/json" \
   -d '{"name":"测试MySQL","type":"MYSQL","host":"127.0.0.1","port":3306,"databaseName":"test","username":"root","password":"root"}'
 
 # 2. 列表查询
-curl http://localhost:8088/api/datasource/list
+curl http://localhost:18088/api/datasource/list
 
 # 3. 测试连接
-curl -X POST http://localhost:8088/api/datasource/test-connection \
+curl -X POST http://localhost:18088/api/datasource/test-connection \
   -H "Content-Type: application/json" \
   -d '{"type":"MYSQL","host":"127.0.0.1","port":3306,"username":"your_user","password":"your_pwd"}'
 
 # 4. 测试连接 by id
-curl -X POST http://localhost:8088/api/datasource/test-connection/1
+curl -X POST http://localhost:18088/api/datasource/test-connection/1
 
 # 5. 更新
-curl -X PUT http://localhost:8088/api/datasource/update \
+curl -X PUT http://localhost:18088/api/datasource/update \
   -H "Content-Type: application/json" \
   -d '{"id":1,"name":"测试MySQL-2","type":"MYSQL","host":"127.0.0.1","port":3306,"databaseName":"test","username":"root","password":"newpwd"}'
 
 # 6. Hive 元数据 - 数据库列表
-curl http://localhost:8088/api/datasource/1/hive/databases
+curl http://localhost:18088/api/datasource/1/hive/databases
 
 # 7. Hive 元数据 - 表列表
-curl http://localhost:8088/api/datasource/1/hive/default/tables
+curl http://localhost:18088/api/datasource/1/hive/default/tables
 
 # 8. 删除
-curl -X DELETE http://localhost:8088/api/datasource/1
+curl -X DELETE http://localhost:18088/api/datasource/1
 ```

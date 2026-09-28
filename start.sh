@@ -78,8 +78,8 @@ start_backend() {
 
     # 等待后端就绪
     for i in $(seq 1 30); do
-        if curl -sf http://localhost:8088/api/ > /dev/null 2>&1; then
-            info "后端已就绪 (HTTP :8088)"
+        if curl -sf http://localhost:18088/api/ > /dev/null 2>&1; then
+            info "后端已就绪 (HTTP :18088)"
             return 0
         fi
         sleep 1
@@ -106,9 +106,9 @@ stop_backend() {
         rm -f "${PID_FILE}"
     else
         # 尝试从端口查找
-        PID=$(lsof -ti tcp:8088 2>/dev/null || true)
+        PID=$(lsof -ti tcp:18088 2>/dev/null || true)
         if [ -n "${PID}" ]; then
-            info "停止端口 8088 上的进程 (PID: ${PID})..."
+            info "停止端口 18088 上的进程 (PID: ${PID})..."
             kill "${PID}" 2>/dev/null || true
         else
             info "后端服务未运行"
@@ -121,8 +121,8 @@ status_backend() {
         PID=$(cat "${PID_FILE}")
         if kill -0 "${PID}" 2>/dev/null; then
             info "后端服务运行中 (PID: ${PID})"
-            if curl -sf http://localhost:8088/api/ > /dev/null 2>&1; then
-                info "后端 HTTP 响应正常 (:8088)"
+            if curl -sf http://localhost:18088/api/ > /dev/null 2>&1; then
+                info "后端 HTTP 响应正常 (:18088)"
             else
                 warn "后端 PID 存在但 HTTP 无响应"
             fi
@@ -131,7 +131,7 @@ status_backend() {
             rm -f "${PID_FILE}"
         fi
     else
-        PID=$(lsof -ti tcp:8088 2>/dev/null || true)
+        PID=$(lsof -ti tcp:18088 2>/dev/null || true)
         if [ -n "${PID}" ]; then
             info "后端服务运行中 (PID: ${PID})，但无 pid 文件"
         else
@@ -170,7 +170,7 @@ case "${1:-dev}" in
         echo '      listen 80;'
         echo '      server_name your-domain;'
         echo '      root /path/to/frontend/dist;'
-        echo '      location /api/ { proxy_pass http://localhost:8088; }'
+        echo '      location /api/ { proxy_pass http://localhost:18088; }'
         echo '  }'
         ;;
     backend)

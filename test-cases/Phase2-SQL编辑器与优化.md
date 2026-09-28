@@ -2,7 +2,7 @@
 
 ## 前置条件
 
-- 后端服务运行在 `http://localhost:8088`
+- 后端服务运行在 `http://localhost:18088`
 - 存在至少一个 MySQL 数据源（ID=4, name=ces, type=MYSQL, database=mysql）
 
 ---

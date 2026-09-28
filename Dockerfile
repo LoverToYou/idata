@@ -36,10 +36,10 @@ RUN mkdir -p /opt/datax /opt/idata/udf && chown -R idata:idata /opt/datax /opt/i
 
 USER idata
 
-EXPOSE 8088
+EXPOSE 18088
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:8088/api/ || exit 1
+  CMD wget -qO- http://localhost:18088/api/ || exit 1
 
 ENTRYPOINT ["java", \
   "-jar", "app.jar" \
