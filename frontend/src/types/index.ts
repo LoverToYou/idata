@@ -5,6 +5,7 @@ export interface DatasourceConfig {
   host: string
   port: number
   databaseName: string
+  jdbcUrl?: string
   username: string
   createdAt: string
   updatedAt: string
@@ -13,20 +14,22 @@ export interface DatasourceConfig {
 export interface DatasourceRequest {
   id?: number
   name: string
-  type: string
-  host: string
-  port: number
-  databaseName: string
+  type?: string
+  host?: string
+  port?: number
+  databaseName?: string
+  jdbcUrl?: string
   username: string
   password: string
   props?: string
 }
 
 export interface ConnectionTestRequest {
-  type: string
-  host: string
-  port: number
+  type?: string
+  host?: string
+  port?: number
   databaseName?: string
+  jdbcUrl?: string
   username?: string
   password?: string
 }

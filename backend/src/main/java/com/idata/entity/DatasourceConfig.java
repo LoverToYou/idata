@@ -21,6 +21,9 @@ public class DatasourceConfig {
 
     private String databaseName;
 
+    /** JDBC URL 直连方式，配置后优先于 host/port/databaseName */
+    private String jdbcUrl;
+
     private String username;
 
     private String password;

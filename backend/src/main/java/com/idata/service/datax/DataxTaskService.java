@@ -318,6 +318,10 @@ public class DataxTaskService {
     }
 
     private String buildJdbcUrl(DatasourceConfig ds, String database) {
+        // 优先使用数据源配置的 JDBC URL（直连方式）
+        if (ds.getJdbcUrl() != null && !ds.getJdbcUrl().isBlank()) {
+            return ds.getJdbcUrl().trim();
+        }
         String db = database != null ? database : ds.getDatabaseName();
         String host = ds.getHost() != null ? ds.getHost() : "localhost";
         int port = ds.getPort() != null ? ds.getPort() : 3306;

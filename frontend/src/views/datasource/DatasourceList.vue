@@ -39,9 +39,15 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="host" label="主机地址" width="160" />
-        <el-table-column prop="port" label="端口" width="80" />
-        <el-table-column prop="databaseName" label="数据库" min-width="120" />
+        <el-table-column label="连接信息" min-width="260" show-overflow-tooltip>
+          <template #default="{ row }">
+            <template v-if="row.jdbcUrl">
+              <el-tag size="small" effect="plain" style="margin-right: 6px">URL</el-tag>
+              <span class="mono">{{ row.jdbcUrl }}</span>
+            </template>
+            <span v-else>{{ row.host }}:{{ row.port }}{{ row.databaseName ? '/' + row.databaseName : '' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="username" label="用户名" width="120" />
         <el-table-column prop="updatedAt" label="更新时间" width="180" />
         <el-table-column label="操作" width="280" fixed="right">
@@ -171,5 +177,10 @@ async function handleBatchDelete() {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-body);
 }
 </style>

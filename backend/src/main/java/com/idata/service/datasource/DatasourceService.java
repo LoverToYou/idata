@@ -86,7 +86,9 @@ public class DatasourceService {
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new IllegalArgumentException("密码不能为空");
         }
+        validateAddress(request.getType(), request.getJdbcUrl(), request.getHost(), request.getPort());
         DatasourceConfig config = toEntity(request);
+        config.setType(normalizeType(request.getType(), request.getJdbcUrl()));
         config.setPassword(passwordEncryptor.encrypt(request.getPassword()));
         datasourceConfigMapper.insert(config);
         return toVO(config);
@@ -97,11 +99,13 @@ public class DatasourceService {
         if (config == null) {
             throw new IllegalArgumentException("数据源不存在: " + request.getId());
         }
+        validateAddress(request.getType(), request.getJdbcUrl(), request.getHost(), request.getPort());
         config.setName(request.getName());
-        config.setType(request.getType());
+        config.setType(normalizeType(request.getType(), request.getJdbcUrl()));
         config.setHost(request.getHost());
         config.setPort(request.getPort());
         config.setDatabaseName(request.getDatabaseName());
+        config.setJdbcUrl(request.getJdbcUrl());
         config.setUsername(request.getUsername());
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             config.setPassword(passwordEncryptor.encrypt(request.getPassword()));
@@ -126,7 +130,8 @@ public class DatasourceService {
     }
 
     public boolean testConnection(ConnectionTestRequest request) {
-        String url = buildJdbcUrl(request.getType(), request.getHost(),
+        validateAddress(request.getType(), request.getJdbcUrl(), request.getHost(), request.getPort());
+        String url = resolveUrl(request.getType(), request.getJdbcUrl(), request.getHost(),
                 request.getPort(), request.getDatabaseName());
         Properties props = new Properties();
         if (request.getUsername() != null) {
@@ -148,6 +153,46 @@ public class DatasourceService {
         return testConnection(toTestRequest(config));
     }
 
+    /**
+     * JDBC URL 优先；未填写时根据类型用 host/port/databaseName 拼装。
+     */
+    private String resolveUrl(String type, String jdbcUrl, String host, Integer port, String databaseName) {
+        if (jdbcUrl != null && !jdbcUrl.isBlank()) {
+            return jdbcUrl.trim();
+        }
+        return buildJdbcUrl(normalizeType(type, jdbcUrl), host, port, databaseName);
+    }
+
+    /**
+     * 类型归一化：类型为空时按 JDBC URL 前缀推断（jdbc:mysql -> MYSQL，jdbc:hive2 -> HIVE）。
+     */
+    private String normalizeType(String type, String jdbcUrl) {
+        if (type != null && !type.isBlank()) {
+            return type.toUpperCase();
+        }
+        if (jdbcUrl != null) {
+            String u = jdbcUrl.toLowerCase();
+            if (u.startsWith("jdbc:mysql")) return "MYSQL";
+            if (u.startsWith("jdbc:hive2")) return "HIVE";
+        }
+        return type;
+    }
+
+    /**
+     * 地址校验：JDBC URL 与「主机+端口」至少提供一种。
+     */
+    private void validateAddress(String type, String jdbcUrl, String host, Integer port) {
+        if (jdbcUrl != null && !jdbcUrl.isBlank()) {
+            return;
+        }
+        if (host == null || host.isBlank() || port == null) {
+            throw new IllegalArgumentException("请填写 JDBC URL，或完整填写主机地址与端口");
+        }
+        if (type == null || type.isBlank()) {
+            throw new IllegalArgumentException("请选择数据源类型");
+        }
+    }
+
     private String buildJdbcUrl(String type, String host, Integer port, String databaseName) {
         if ("MYSQL".equalsIgnoreCase(type)) {
             return String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
@@ -161,7 +206,7 @@ public class DatasourceService {
 
     public Connection getConnection(Long datasourceId) throws SQLException {
         DatasourceConfig config = getEntityById(datasourceId);
-        String url = buildJdbcUrl(config.getType(), config.getHost(),
+        String url = resolveUrl(config.getType(), config.getJdbcUrl(), config.getHost(),
                 config.getPort(), config.getDatabaseName());
         Properties props = new Properties();
         props.setProperty("user", config.getUsername());
@@ -170,7 +215,7 @@ public class DatasourceService {
     }
 
     public Connection getConnection(ConnectionTestRequest request) throws SQLException {
-        String url = buildJdbcUrl(request.getType(), request.getHost(),
+        String url = resolveUrl(request.getType(), request.getJdbcUrl(), request.getHost(),
                 request.getPort(), request.getDatabaseName());
         Properties props = new Properties();
         if (request.getUsername() != null) props.setProperty("user", request.getUsername());
@@ -184,6 +229,7 @@ public class DatasourceService {
         req.setHost(config.getHost());
         req.setPort(config.getPort());
         req.setDatabaseName(config.getDatabaseName());
+        req.setJdbcUrl(config.getJdbcUrl());
         req.setUsername(config.getUsername());
         req.setPassword(config.getPassword());
         return req;
@@ -196,6 +242,7 @@ public class DatasourceService {
         config.setHost(request.getHost());
         config.setPort(request.getPort());
         config.setDatabaseName(request.getDatabaseName());
+        config.setJdbcUrl(request.getJdbcUrl());
         config.setUsername(request.getUsername());
         config.setProps(request.getProps());
         return config;
@@ -209,6 +256,7 @@ public class DatasourceService {
         vo.setHost(config.getHost());
         vo.setPort(config.getPort());
         vo.setDatabaseName(config.getDatabaseName());
+        vo.setJdbcUrl(config.getJdbcUrl());
         vo.setUsername(config.getUsername());
         vo.setCreatedAt(config.getCreatedAt());
         vo.setUpdatedAt(config.getUpdatedAt());

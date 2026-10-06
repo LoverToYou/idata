@@ -12,6 +12,7 @@ public class DatasourceVO {
     private String host;
     private Integer port;
     private String databaseName;
+    private String jdbcUrl;
     private String username;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

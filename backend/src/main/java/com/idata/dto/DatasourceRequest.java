@@ -1,7 +1,6 @@
 package com.idata.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
@@ -11,16 +10,17 @@ public class DatasourceRequest {
     @NotBlank(message = "数据源名称不能为空")
     private String name;
 
-    @NotBlank(message = "数据源类型不能为空")
-    private String type; // MYSQL / HIVE
+    /** MYSQL / HIVE，JDBC URL 方式下可自动推断 */
+    private String type;
 
-    @NotBlank(message = "主机地址不能为空")
     private String host;
 
-    @NotNull(message = "端口不能为空")
     private Integer port;
 
     private String databaseName;
+
+    /** JDBC URL 直连方式（可选，填写后优先于 host/port/databaseName） */
+    private String jdbcUrl;
 
     @NotBlank(message = "用户名不能为空")
     private String username;
