@@ -19,7 +19,8 @@ public class SqlTask {
 
     private String sqlContent;
 
-    /** 执行引擎：HIVE / SPARK（空=跟随数据源默认） */
+    /** 执行引擎：HIVE / SPARK（空=跟随数据源默认）；允许更新为空 */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String engine;
 
     private String createdBy;
