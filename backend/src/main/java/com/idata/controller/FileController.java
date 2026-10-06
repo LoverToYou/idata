@@ -58,7 +58,7 @@ public class FileController {
         return Result.success(fileManageService.listJars(keyword));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<FileManageVO> getById(@PathVariable Long id) {
         return Result.success(fileManageService.getById(id));
     }
@@ -75,7 +75,7 @@ public class FileController {
                 .body(new InputStreamResource(item.stream()));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         fileManageService.delete(id);
         return Result.success();

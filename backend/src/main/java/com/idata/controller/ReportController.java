@@ -26,7 +26,7 @@ public class ReportController {
         return Result.success(reportService.listAll());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<ReportVO> getById(@PathVariable Long id) {
         return Result.success(reportService.getById(id));
     }
@@ -41,7 +41,7 @@ public class ReportController {
         return Result.success(reportService.update(request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         reportService.delete(id);
         return Result.success();

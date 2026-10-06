@@ -38,7 +38,7 @@ public class ParameterController {
         return Result.success(parameterService.listPage(keyword, page, pageSize));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<ParameterVO> getById(@PathVariable Long id) {
         return Result.success(parameterService.getById(id));
     }
@@ -53,7 +53,7 @@ public class ParameterController {
         return Result.success(parameterService.update(req));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         parameterService.delete(id);
         return Result.success();

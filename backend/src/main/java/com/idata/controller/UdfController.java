@@ -35,7 +35,7 @@ public class UdfController {
         return Result.success(udfService.page(keyword, datasourceId, registerStatus, page, pageSize));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<UdfDefinitionVO> getById(@PathVariable Long id) {
         return Result.success(udfService.getById(id));
     }
@@ -45,7 +45,7 @@ public class UdfController {
         return Result.success(udfService.update(request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         udfService.delete(id);
         return Result.success();

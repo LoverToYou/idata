@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -29,6 +30,13 @@ public class GlobalExceptionHandler {
     public Result<Void> handleIllegalArgument(IllegalArgumentException e) {
         log.warn("Bad request: {}", e.getMessage());
         return Result.error(400, e.getMessage());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public Result<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        log.warn("Method not supported: {}", e.getMessage());
+        return Result.error(405, "请求方法不支持: " + e.getMethod());
     }
 
     @ExceptionHandler(RuntimeException.class)

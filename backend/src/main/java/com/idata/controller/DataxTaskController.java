@@ -34,7 +34,7 @@ public class DataxTaskController {
         return Result.success(dataxTaskService.listPage(keyword, page, pageSize));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<DataxTaskVO> getById(@PathVariable Long id) {
         return Result.success(dataxTaskService.getById(id));
     }
@@ -49,7 +49,7 @@ public class DataxTaskController {
         return Result.success(dataxTaskService.update(request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         dataxTaskService.delete(id);
         return Result.success();

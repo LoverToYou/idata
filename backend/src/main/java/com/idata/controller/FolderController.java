@@ -34,7 +34,7 @@ public class FolderController {
         return Result.success(folderService.update(request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         folderService.delete(id);
         return Result.success();

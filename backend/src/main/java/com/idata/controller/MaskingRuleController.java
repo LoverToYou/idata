@@ -33,7 +33,7 @@ public class MaskingRuleController {
         return Result.success(maskingRuleService.listPage(keyword, page, pageSize));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<MaskingRuleVO> getById(@PathVariable Long id) {
         return Result.success(maskingRuleService.getById(id));
     }
@@ -48,7 +48,7 @@ public class MaskingRuleController {
         return Result.success(maskingRuleService.update(req));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         maskingRuleService.delete(id);
         return Result.success();

@@ -31,7 +31,7 @@ public class PythonTaskController {
         return Result.success(pythonTaskService.listPage(keyword, page, pageSize));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<PythonScriptVO> getById(@PathVariable Long id) {
         return Result.success(pythonTaskService.getById(id));
     }
@@ -46,7 +46,7 @@ public class PythonTaskController {
         return Result.success(pythonTaskService.update(request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         pythonTaskService.delete(id);
         return Result.success();

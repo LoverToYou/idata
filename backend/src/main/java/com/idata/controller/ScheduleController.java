@@ -39,7 +39,7 @@ public class ScheduleController {
         return Result.success(scheduleService.update(request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         scheduleService.delete(id);
         return Result.success();

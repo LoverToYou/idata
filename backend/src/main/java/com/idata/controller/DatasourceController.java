@@ -43,7 +43,7 @@ public class DatasourceController {
         return Result.success(datasourceService.listPage(keyword, page, pageSize));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<DatasourceVO> getById(@PathVariable Long id) {
         return Result.success(datasourceService.getById(id));
     }
@@ -58,7 +58,7 @@ public class DatasourceController {
         return Result.success(datasourceService.update(request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         datasourceService.delete(id);
         return Result.success();

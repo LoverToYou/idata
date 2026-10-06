@@ -33,7 +33,7 @@ public class SqlTaskController {
         return Result.success(sqlTaskService.listPage(keyword, page, pageSize));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<SqlTaskVO> getById(@PathVariable Long id) {
         return Result.success(sqlTaskService.getById(id));
     }
@@ -48,7 +48,7 @@ public class SqlTaskController {
         return Result.success(sqlTaskService.update(request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         sqlTaskService.delete(id);
         return Result.success();

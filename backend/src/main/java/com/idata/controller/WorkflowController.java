@@ -39,7 +39,7 @@ public class WorkflowController {
         return Result.success(workflowService.listPage(keyword, page, pageSize));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<WorkflowVO> getById(@PathVariable Long id) {
         return Result.success(workflowService.getById(id));
     }
@@ -54,7 +54,7 @@ public class WorkflowController {
         return Result.success(workflowService.update(request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         workflowService.delete(id);
         return Result.success();

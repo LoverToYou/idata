@@ -26,7 +26,7 @@ public class DashboardController {
         return Result.success(dashboardService.listAll());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public Result<DashboardVO> getById(@PathVariable Long id) {
         return Result.success(dashboardService.getById(id));
     }
@@ -41,7 +41,7 @@ public class DashboardController {
         return Result.success(dashboardService.update(request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public Result<Void> delete(@PathVariable Long id) {
         dashboardService.delete(id);
         return Result.success();
