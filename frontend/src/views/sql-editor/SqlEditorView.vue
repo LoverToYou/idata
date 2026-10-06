@@ -602,13 +602,18 @@ async function loadTaskDetail(id: number) {
     }
     if (detail.datasourceId) {
       selectedDatasource.value = detail.datasourceId
-      await loadDatabases(detail.datasourceId)
-      await loadAllTables(detail.datasourceId)
-      const ds = datasources.value.find(d => d.id === detail.datasourceId)
-      if (ds) {
-        loadKeywords(ds.type)
+      try {
+        await loadDatabases(detail.datasourceId)
+        await loadAllTables(detail.datasourceId)
+        await loadUdfs()
+        const ds = datasources.value.find((d) => d.id === detail.datasourceId)
+        if (ds) {
+          loadKeywords(ds.type)
+        }
+      } catch {
+        // 数据源不可用（例如 Hive 未启动）不应影响脚本编写
+        ElMessage.warning('数据源元数据加载失败（数据源可能未启动），仍可编写脚本')
       }
-      await loadUdfs()
     }
   } catch {
     ElMessage.error('加载任务失败')
@@ -674,13 +679,6 @@ async function handleCreateConfirm() {
     currentTask.value = res.data
     taskName.value = newTaskForm.name.trim()
     selectedDatasource.value = newTaskForm.datasourceId!
-    await loadDatabases(newTaskForm.datasourceId!)
-      await loadAllTables(newTaskForm.datasourceId!)
-    const ds = datasources.value.find(d => d.id === newTaskForm.datasourceId!)
-    if (ds) {
-      loadKeywords(ds.type)
-    }
-    await loadUdfs()
 
     createDialogVisible.value = false
     mode.value = 'edit'
@@ -693,7 +691,19 @@ async function handleCreateConfirm() {
     analysis.value = null
     analyzed.value = false
 
+    // 先挂载编辑器：即使数据源不可用（如 Hive 未启动）也能正常编写脚本
     ensureEditor()
+    try {
+      await loadDatabases(newTaskForm.datasourceId!)
+      await loadAllTables(newTaskForm.datasourceId!)
+      await loadUdfs()
+      const ds = datasources.value.find((d) => d.id === newTaskForm.datasourceId!)
+      if (ds) {
+        loadKeywords(ds.type)
+      }
+    } catch {
+      ElMessage.warning('数据源元数据加载失败（数据源可能未启动），仍可编写脚本')
+    }
     nextTick(() => {
       if (editor) {
         editor.setValue(defaultComment)
@@ -1175,9 +1185,10 @@ function ensureEditor() {
         { token: 'operator', foreground: '#1a56db' },
         { token: 'builtinFunction', foreground: '#7c3aed' },
       ],
-      colors: { 'editor.background': 'var(--bg-muted)' },
+      colors: { 'editor.background': '#fafbfc' },
     })
-    editor = monaco.editor.create(monacoContainer.value, {
+    try {
+      editor = monaco.editor.create(monacoContainer.value, {
       value: '',
       language: 'sql',
       theme: 'idata',
@@ -1189,7 +1200,12 @@ function ensureEditor() {
       wordWrap: 'on',
       quickSuggestions: true,
       suggestOnTriggerCharacters: true,
-    })
+      })
+    } catch (e: any) {
+      console.error('Monaco 编辑器初始化失败', e)
+      ElMessage.error('编辑器初始化失败：' + (e?.message || e))
+      return
+    }
     monaco.editor.setTheme('idata')
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       handleExecute()
@@ -1229,13 +1245,18 @@ onBeforeUnmount(async () => {
 async function onDatasourceChange(val: number) {
   if (mode.value === 'edit') rotateSession()
   selectedDatasource.value = val
-  await loadDatabases(val)
-  await loadAllTables(val)
-  const ds = datasources.value.find(d => d.id === val)
+  const ds = datasources.value.find((d) => d.id === val)
   if (ds) {
     loadKeywords(ds.type)
   }
-  await loadUdfs()
+  try {
+    await loadDatabases(val)
+    await loadAllTables(val)
+    await loadUdfs()
+  } catch {
+    // 数据源不可用（如 Hive 未启动）时不影响脚本编写
+    ElMessage.warning('数据源连接失败（数据源可能未启动），仍可编写脚本')
+  }
 }
 
 function getEditorSql(): string {
