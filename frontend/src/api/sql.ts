@@ -7,6 +7,8 @@ export interface SqlExecuteResult {
   affectedRows: number
   elapsedMs: number
   errorMessage?: string
+  /** 结果是否因超过后端行数上限（默认 1000）被截断 */
+  truncated?: boolean
 }
 
 export interface ExplainRow {

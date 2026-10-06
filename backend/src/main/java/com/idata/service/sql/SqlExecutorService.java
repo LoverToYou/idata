@@ -21,17 +21,22 @@ public class SqlExecutorService {
     }
 
     public SqlExecuteResult execute(Long datasourceId, String sql) {
-        return execute(datasourceId, sql, null, null);
+        return execute(datasourceId, sql, null, null, null);
     }
 
     public SqlExecuteResult execute(Long datasourceId, String sql, String sessionId) {
-        return execute(datasourceId, sql, sessionId, null);
+        return execute(datasourceId, sql, sessionId, null, null);
+    }
+
+    public SqlExecuteResult execute(Long datasourceId, String sql, String sessionId, String engine) {
+        return execute(datasourceId, sql, sessionId, engine, null);
     }
 
     /**
      * 执行 SQL；engine 为空时用数据源默认引擎（HIVE / SPARK）。
+     * maxRows 为 null 时返回全部行；否则最多返回 maxRows 行，并把 truncated 置为 true 表示还有更多数据。
      */
-    public SqlExecuteResult execute(Long datasourceId, String sql, String sessionId, String engine) {
+    public SqlExecuteResult execute(Long datasourceId, String sql, String sessionId, String engine, Integer maxRows) {
         SqlExecuteResult result = new SqlExecuteResult();
         long start = System.currentTimeMillis();
 
@@ -43,6 +48,15 @@ public class SqlExecutorService {
             sqlSessionManager.run(sessionId, datasourceId, engine, conn -> {
                 try (Statement stmt = conn.createStatement()) {
                     if (isQuery) {
+                        int rowLimit = (maxRows != null && maxRows > 0) ? maxRows : -1;
+                        if (rowLimit > 0) {
+                            // 让驱动尽量在源头限制行数（MySQL 会据此追加 LIMIT）；多取 1 行用于判断是否被截断
+                            try {
+                                stmt.setMaxRows(rowLimit + 1);
+                            } catch (Exception ignore) {
+                                // 部分驱动不支持，忽略即可，下面的循环仍会兜底截断
+                            }
+                        }
                         try (ResultSet rs = stmt.executeQuery(sql)) {
                             ResultSetMetaData meta = rs.getMetaData();
                             List<String> columns = new ArrayList<>();
@@ -52,7 +66,12 @@ public class SqlExecutorService {
                             result.setColumns(columns);
 
                             List<Map<String, Object>> rows = new ArrayList<>();
+                            boolean truncated = false;
                             while (rs.next()) {
+                                if (rowLimit > 0 && rows.size() >= rowLimit) {
+                                    truncated = true;
+                                    break;
+                                }
                                 Map<String, Object> row = new LinkedHashMap<>();
                                 for (String col : columns) {
                                     row.put(col, rs.getObject(col));
@@ -61,6 +80,7 @@ public class SqlExecutorService {
                             }
                             result.setRows(rows);
                             result.setAffectedRows(rows.size());
+                            result.setTruncated(truncated);
                         }
                     } else {
                         int affected = stmt.executeUpdate(sql);

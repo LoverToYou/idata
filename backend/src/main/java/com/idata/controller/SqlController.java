@@ -17,6 +17,9 @@ import java.util.Map;
 @RequestMapping("/sql")
 public class SqlController {
 
+    /** SQL 编辑器查询结果最多返回的行数，超出部分不返回（前端按页展示，并提示已截断） */
+    private static final int MAX_RESULT_ROWS = 1000;
+
     private final SqlExecutorService sqlExecutorService;
     private final SqlParserService sqlParserService;
     private final SqlOptimizerService sqlOptimizerService;
@@ -34,7 +37,7 @@ public class SqlController {
 
     @PostMapping("/execute")
     public Result<SqlExecuteResult> execute(@Valid @RequestBody SqlExecuteRequest request) {
-        SqlExecuteResult result = sqlExecutorService.execute(request.getDatasourceId(), request.getSql(), request.getSessionId(), request.getEngine());
+        SqlExecuteResult result = sqlExecutorService.execute(request.getDatasourceId(), request.getSql(), request.getSessionId(), request.getEngine(), MAX_RESULT_ROWS);
         if (result.getErrorMessage() != null) {
             return Result.error(500, result.getErrorMessage());
         }

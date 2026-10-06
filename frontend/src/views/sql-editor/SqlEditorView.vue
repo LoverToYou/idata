@@ -269,6 +269,7 @@
                   </div>
                   <div class="stmt-result-block__header-right">
                     <span v-if="item.result.affectedRows >= 0" class="stmt-rows">{{ item.result.affectedRows }} 行</span>
+                    <el-tag v-if="item.result.truncated" size="small" type="warning" effect="plain">已截断</el-tag>
                     <el-button
                       size="small"
                       text
@@ -286,10 +287,10 @@
                 <div class="stmt-result">
                   <el-table
                     v-if="item.result.columns && item.result.columns.length > 0"
-                    :data="item.result.rows"
+                    :data="pagedRows(item)"
                     border
                     stripe
-                    max-height="300"
+                    max-height="420"
                     size="small"
                     style="width: 100%"
                   >
@@ -302,6 +303,18 @@
                     />
                   </el-table>
                   <el-empty v-else-if="item.result.affectedRows >= 0" description="执行成功，无返回数据" />
+                  <el-pagination
+                    v-if="(item.result.rows || []).length > 0"
+                    v-model:current-page="item.page"
+                    v-model:page-size="item.pageSize"
+                    :total="(item.result.rows || []).length"
+                    :page-sizes="RESULT_PAGE_SIZES"
+                    layout="total, sizes, prev, pager, next"
+                    background
+                    small
+                    class="stmt-result__pager"
+                    @size-change="item.page = 1"
+                  />
                   <el-alert v-if="item.result.errorMessage" type="error" :description="item.result.errorMessage" show-icon />
                 </div>
               </div>
@@ -471,7 +484,13 @@ interface ExecutedStatement {
   sql: string       // original SQL before param resolution
   resolvedSql: string  // actual SQL sent to database
   result: SqlExecuteResult
+  page: number      // 结果表当前页码
+  pageSize: number  // 结果表每页行数
 }
+
+/** 查询结果分页：默认每页 10 条，可选 10 / 20 / 50 */
+const RESULT_PAGE_SIZES = [10, 20, 50]
+const RESULT_DEFAULT_PAGE_SIZE = 10
 let nextStmtId = 1
 
 interface ExecLogEntry {
@@ -931,6 +950,14 @@ watch(executedStatements, (stmts) => {
     if (firstUnpinned) selectedStatement.value = firstUnpinned
   }
 })
+/** 当前结果页要展示的行：前端对后端返回的结果（最多 1000 行）做分页 */
+function pagedRows(item: ExecutedStatement): Record<string, any>[] {
+  const rows = item.result.rows || []
+  const size = item.pageSize || RESULT_DEFAULT_PAGE_SIZE
+  const start = ((item.page || 1) - 1) * size
+  return rows.slice(start, start + size)
+}
+
 const execLog = ref<ExecLogEntry[]>([])
 
 function addExecLog(message: string, type: ExecLogEntry['type'] = 'info') {
@@ -1347,19 +1374,19 @@ async function handleExecute() {
       addExecLog(`执行: ${label}`, 'info')
       const res = await executeSql(selectedDatasource.value, resolvedStmt, sessionId.value ?? undefined, engine.value || undefined)
       const result = res.data
-      stmts.push({ id: nextStmtId++, sql: origStmt, resolvedSql: resolvedStmt, result })
+      stmts.push({ id: nextStmtId++, sql: origStmt, resolvedSql: resolvedStmt, result, page: 1, pageSize: RESULT_DEFAULT_PAGE_SIZE })
       if (result.errorMessage) {
         addExecLog(`失败: ${result.errorMessage}`, 'error')
       } else {
         const parts: string[] = []
         if (result.elapsedMs) parts.push(`耗时 ${result.elapsedMs}ms`)
         if (result.affectedRows >= 0) parts.push(`影响 ${result.affectedRows} 行`)
-        if (result.columns?.length) parts.push(`返回 ${result.columns.length} 列 × ${result.rows?.length || 0} 行`)
+        if (result.columns?.length) parts.push(`返回 ${result.columns.length} 列 × ${result.rows?.length || 0} 行${result.truncated ? `（已截断，仅返回前 ${result.rows?.length || 0} 条）` : ''}`)
         addExecLog(`成功: ${parts.join('，')}`, 'success')
       }
     } catch (e: any) {
       const errMsg = e.message || '执行失败'
-      stmts.push({ id: nextStmtId++, sql: origStmt, resolvedSql: resolvedStmt, result: { columns: [], rows: [], affectedRows: -1, elapsedMs: 0, errorMessage: errMsg } })
+      stmts.push({ id: nextStmtId++, sql: origStmt, resolvedSql: resolvedStmt, result: { columns: [], rows: [], affectedRows: -1, elapsedMs: 0, errorMessage: errMsg }, page: 1, pageSize: RESULT_DEFAULT_PAGE_SIZE })
       addExecLog(`失败: ${errMsg}`, 'error')
     }
   }
@@ -1928,6 +1955,10 @@ async function handleUnpublish() {
 }
 .stmt-result {
   padding: 8px 12px;
+}
+.stmt-result__pager {
+  margin-top: 10px;
+  justify-content: flex-end;
 }
 
 /* Execution log */
