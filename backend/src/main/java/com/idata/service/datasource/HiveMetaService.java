@@ -18,11 +18,18 @@ public class HiveMetaService {
     }
 
     /**
-     * List all databases from Hive
+     * List all databases（默认引擎）
      */
     public List<String> listDatabases(Long datasourceId) {
+        return listDatabases(datasourceId, null);
+    }
+
+    /**
+     * List all databases from Hive / Spark（engine 为空时使用数据源默认引擎）
+     */
+    public List<String> listDatabases(Long datasourceId, String engine) {
         List<String> databases = new ArrayList<>();
-        try (Connection conn = datasourceService.getConnection(datasourceId);
+        try (Connection conn = datasourceService.getConnection(datasourceId, engine);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SHOW DATABASES")) {
             while (rs.next()) {
@@ -35,11 +42,15 @@ public class HiveMetaService {
     }
 
     /**
-     * List all tables in a given database
+     * List all tables in a given database（默认引擎）
      */
     public List<String> listTables(Long datasourceId, String databaseName) {
+        return listTables(datasourceId, databaseName, null);
+    }
+
+    public List<String> listTables(Long datasourceId, String databaseName, String engine) {
         List<String> tables = new ArrayList<>();
-        try (Connection conn = datasourceService.getConnection(datasourceId);
+        try (Connection conn = datasourceService.getConnection(datasourceId, engine);
              Statement stmt = conn.createStatement()) {
             stmt.execute("USE " + databaseName);
             try (ResultSet rs = stmt.executeQuery("SHOW TABLES")) {
@@ -54,11 +65,16 @@ public class HiveMetaService {
     }
 
     /**
-     * Get table schema (column name, type, comment)
+     * Get table schema (column name, type, comment)（默认引擎）
      */
     public List<Map<String, String>> describeTable(Long datasourceId, String databaseName, String tableName) {
+        return describeTable(datasourceId, databaseName, tableName, null);
+    }
+
+    public List<Map<String, String>> describeTable(Long datasourceId, String databaseName, String tableName,
+                                                   String engine) {
         List<Map<String, String>> columns = new ArrayList<>();
-        try (Connection conn = datasourceService.getConnection(datasourceId);
+        try (Connection conn = datasourceService.getConnection(datasourceId, engine);
              Statement stmt = conn.createStatement()) {
             stmt.execute("USE " + databaseName);
             java.util.Set<String> seen = new java.util.HashSet<>();
@@ -84,11 +100,16 @@ public class HiveMetaService {
     }
 
     /**
-     * Get partition info for a table
+     * Get partition info for a table（默认引擎）
      */
     public List<Map<String, String>> listPartitions(Long datasourceId, String databaseName, String tableName) {
+        return listPartitions(datasourceId, databaseName, tableName, null);
+    }
+
+    public List<Map<String, String>> listPartitions(Long datasourceId, String databaseName, String tableName,
+                                                    String engine) {
         List<Map<String, String>> partitions = new ArrayList<>();
-        try (Connection conn = datasourceService.getConnection(datasourceId);
+        try (Connection conn = datasourceService.getConnection(datasourceId, engine);
              Statement stmt = conn.createStatement()) {
             stmt.execute("USE " + databaseName);
             try (ResultSet rs = stmt.executeQuery("SHOW PARTITIONS " + tableName)) {

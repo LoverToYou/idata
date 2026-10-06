@@ -13,6 +13,8 @@ public class DatasourceVO {
     private Integer port;
     private String databaseName;
     private String jdbcUrl;
+    private String engine;
+    private String sparkJdbcUrl;
     private String username;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

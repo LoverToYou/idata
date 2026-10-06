@@ -6,6 +6,8 @@ export interface DatasourceConfig {
   port: number
   databaseName: string
   jdbcUrl?: string
+  engine?: string
+  sparkJdbcUrl?: string
   username: string
   createdAt: string
   updatedAt: string
@@ -19,6 +21,8 @@ export interface DatasourceRequest {
   port?: number
   databaseName?: string
   jdbcUrl?: string
+  engine?: string
+  sparkJdbcUrl?: string
   username: string
   password: string
   props?: string
@@ -30,6 +34,9 @@ export interface ConnectionTestRequest {
   port?: number
   databaseName?: string
   jdbcUrl?: string
+  sparkJdbcUrl?: string
+  engine?: string
+  datasourceId?: number
   username?: string
   password?: string
 }

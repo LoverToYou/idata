@@ -19,6 +19,9 @@ public class SqlTask {
 
     private String sqlContent;
 
+    /** 执行引擎：HIVE / SPARK（空=跟随数据源默认） */
+    private String engine;
+
     private String createdBy;
 
     private String status;

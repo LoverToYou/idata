@@ -120,6 +120,7 @@ public class SqlTaskService {
         task.setDescription(req.getDescription());
         task.setDatasourceId(req.getDatasourceId());
         task.setSqlContent(req.getSqlContent());
+        task.setEngine(req.getEngine());
         task.setStatus("DRAFT");
         sqlTaskMapper.insert(task);
         return toVO(task);
@@ -134,6 +135,7 @@ public class SqlTaskService {
         task.setDescription(req.getDescription());
         task.setDatasourceId(req.getDatasourceId());
         task.setSqlContent(req.getSqlContent());
+        task.setEngine(req.getEngine());
         sqlTaskMapper.updateById(task);
         return toVO(sqlTaskMapper.selectById(req.getId()));
     }
@@ -181,6 +183,7 @@ public class SqlTaskService {
         vo.setDescription(task.getDescription());
         vo.setDatasourceId(task.getDatasourceId());
         vo.setSqlContent(task.getSqlContent());
+        vo.setEngine(task.getEngine());
         vo.setCreatedBy(task.getCreatedBy());
         vo.setStatus(task.getStatus());
         vo.setCreatedAt(task.getCreatedAt());

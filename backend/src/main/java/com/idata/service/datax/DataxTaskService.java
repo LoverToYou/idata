@@ -326,7 +326,7 @@ public class DataxTaskService {
         String host = ds.getHost() != null ? ds.getHost() : "localhost";
         int port = ds.getPort() != null ? ds.getPort() : 3306;
         if ("HIVE".equalsIgnoreCase(ds.getType())) {
-            return "jdbc:hive2://" + host + ":" + port + "/" + (db != null ? db : "") + ";auth=noSasl";
+            return "jdbc:hive2://" + host + ":" + port + "/" + (db != null ? db : "") ;
         }
         return "jdbc:mysql://" + host + ":" + port + "/" + (db != null ? db : "")
                 + "?useUnicode=true&characterEncoding=utf-8&useSSL=false";

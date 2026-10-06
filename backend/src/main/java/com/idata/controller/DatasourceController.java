@@ -77,33 +77,38 @@ public class DatasourceController {
     }
 
     @PostMapping("/test-connection/{id}")
-    public Result<Boolean> testConnectionById(@PathVariable Long id) {
-        boolean ok = datasourceService.testConnectionById(id);
+    public Result<Boolean> testConnectionById(@PathVariable Long id,
+                                             @RequestParam(required = false) String engine) {
+        boolean ok = datasourceService.testConnectionById(id, engine);
         return Result.success(ok);
     }
 
     // --- Hive metadata endpoints ---
 
     @GetMapping("/{id}/hive/databases")
-    public Result<List<String>> hiveDatabases(@PathVariable Long id) {
-        return Result.success(hiveMetaService.listDatabases(id));
+    public Result<List<String>> hiveDatabases(@PathVariable Long id,
+                                             @RequestParam(required = false) String engine) {
+        return Result.success(hiveMetaService.listDatabases(id, engine));
     }
 
     @GetMapping("/{id}/hive/{database}/tables")
-    public Result<List<String>> hiveTables(@PathVariable Long id, @PathVariable String database) {
-        return Result.success(hiveMetaService.listTables(id, database));
+    public Result<List<String>> hiveTables(@PathVariable Long id, @PathVariable String database,
+                                          @RequestParam(required = false) String engine) {
+        return Result.success(hiveMetaService.listTables(id, database, engine));
     }
 
     @GetMapping("/{id}/hive/{database}/tables/{tableName}/schema")
     public Result<List<Map<String, String>>> hiveTableSchema(
-            @PathVariable Long id, @PathVariable String database, @PathVariable String tableName) {
-        return Result.success(hiveMetaService.describeTable(id, database, tableName));
+            @PathVariable Long id, @PathVariable String database, @PathVariable String tableName,
+            @RequestParam(required = false) String engine) {
+        return Result.success(hiveMetaService.describeTable(id, database, tableName, engine));
     }
 
     @GetMapping("/{id}/hive/{database}/tables/{tableName}/partitions")
     public Result<List<Map<String, String>>> hivePartitions(
-            @PathVariable Long id, @PathVariable String database, @PathVariable String tableName) {
-        return Result.success(hiveMetaService.listPartitions(id, database, tableName));
+            @PathVariable Long id, @PathVariable String database, @PathVariable String tableName,
+            @RequestParam(required = false) String engine) {
+        return Result.success(hiveMetaService.listPartitions(id, database, tableName, engine));
     }
 
     // --- Generic JDBC metadata endpoints ---

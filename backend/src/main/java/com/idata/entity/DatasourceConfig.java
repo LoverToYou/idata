@@ -24,6 +24,12 @@ public class DatasourceConfig {
     /** JDBC URL 直连方式，配置后优先于 host/port/databaseName */
     private String jdbcUrl;
 
+    /** 默认执行引擎：HIVE / SPARK */
+    private String engine;
+
+    /** Spark 引擎（Spark Thrift Server）的 JDBC URL */
+    private String sparkJdbcUrl;
+
     private String username;
 
     private String password;

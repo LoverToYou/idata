@@ -32,10 +32,19 @@
         <el-table-column type="selection" width="50" />
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="名称" min-width="150" />
-        <el-table-column prop="type" label="类型" width="100">
+        <el-table-column prop="type" label="类型 / 引擎" width="170">
           <template #default="{ row }">
             <el-tag :type="row.type === 'MYSQL' ? 'success' : 'warning'">
               {{ row.type }}
+            </el-tag>
+            <el-tag
+              v-if="row.type === 'HIVE'"
+              size="small"
+              effect="plain"
+              type="info"
+              style="margin-left: 6px"
+            >
+              {{ row.engine === 'SPARK' ? 'Spark' : 'Hive' }}
             </el-tag>
           </template>
         </el-table-column>

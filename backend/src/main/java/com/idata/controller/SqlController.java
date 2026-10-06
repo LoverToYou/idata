@@ -34,7 +34,7 @@ public class SqlController {
 
     @PostMapping("/execute")
     public Result<SqlExecuteResult> execute(@Valid @RequestBody SqlExecuteRequest request) {
-        SqlExecuteResult result = sqlExecutorService.execute(request.getDatasourceId(), request.getSql(), request.getSessionId());
+        SqlExecuteResult result = sqlExecutorService.execute(request.getDatasourceId(), request.getSql(), request.getSessionId(), request.getEngine());
         if (result.getErrorMessage() != null) {
             return Result.error(500, result.getErrorMessage());
         }
@@ -43,7 +43,7 @@ public class SqlController {
 
     @PostMapping("/explain")
     public Result<ExplainPlanResult> explain(@Valid @RequestBody SqlExecuteRequest request) {
-        ExplainPlanResult result = sqlExecutorService.explain(request.getDatasourceId(), request.getSql(), request.getSessionId());
+        ExplainPlanResult result = sqlExecutorService.explain(request.getDatasourceId(), request.getSql(), request.getSessionId(), request.getEngine());
         return Result.success(result);
     }
 
@@ -77,7 +77,7 @@ public class SqlController {
         SqlAnalysisResult analysis = sqlParserService.analyze(sql);
 
         // 2. Get EXPLAIN plan
-        ExplainPlanResult plan = sqlExecutorService.explain(datasourceId, sql, request.getSessionId());
+        ExplainPlanResult plan = sqlExecutorService.explain(datasourceId, sql, request.getSessionId(), request.getEngine());
 
         // 3. Generate optimization suggestions from plan
         List<SqlSuggestion> planSuggestions = sqlOptimizerService.analyzePlan(plan);

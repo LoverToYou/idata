@@ -35,15 +35,27 @@ public class SqlSessionManager {
      * 非空时复用/重建会话连接，执行完毕不关闭连接。
      */
     public <T> T run(String sessionId, Long datasourceId, SqlConnectionCallback<T> callback) throws SQLException {
+        return run(sessionId, datasourceId, null, callback);
+    }
+
+    /**
+     * 在会话连接上执行回调。
+     *
+     * <p>会话按「数据源 + 执行引擎」绑定：切换数据源或引擎（HIVE/SPARK）时会自动重建连接，
+     * 避免同一个会话在错误引擎上执行。sessionId 为空时保持一次性连接行为。
+     */
+    public <T> T run(String sessionId, Long datasourceId, String engine, SqlConnectionCallback<T> callback)
+            throws SQLException {
         if (sessionId == null || sessionId.isBlank()) {
-            try (Connection conn = datasourceService.getConnection(datasourceId)) {
+            try (Connection conn = datasourceService.getConnection(datasourceId, engine)) {
                 return callback.doInConnection(conn);
             }
         }
-        return runInSession(sessionId, datasourceId, callback);
+        return runInSession(sessionId, datasourceId, engine, callback);
     }
 
-    private <T> T runInSession(String sessionId, Long datasourceId, SqlConnectionCallback<T> callback) throws SQLException {
+    private <T> T runInSession(String sessionId, Long datasourceId, String engine, SqlConnectionCallback<T> callback)
+            throws SQLException {
         Session session = sessions.get(sessionId);
         if (session == null) {
             if (sessions.size() >= maxSessions) {
@@ -53,7 +65,7 @@ public class SqlSessionManager {
         }
         session.lock.lock();
         try {
-            ensureConnection(session, datasourceId);
+            ensureConnection(session, datasourceId, engine);
             session.lastAccessTime = System.currentTimeMillis();
             return callback.doInConnection(session.connection);
         } catch (SQLException | RuntimeException e) {
@@ -64,14 +76,18 @@ public class SqlSessionManager {
         }
     }
 
-    private void ensureConnection(Session session, Long datasourceId) throws SQLException {
-        if (session.connection != null && !session.datasourceId.equals(datasourceId)) {
+    private void ensureConnection(Session session, Long datasourceId, String engine) throws SQLException {
+        String normalizedEngine = engine == null || engine.isBlank() ? null : engine.trim().toUpperCase();
+        boolean changed = session.connection != null
+                && (!session.datasourceId.equals(datasourceId) || !java.util.Objects.equals(session.engine, normalizedEngine));
+        if (changed) {
             closeQuietly(session.connection);
             session.connection = null;
         }
         if (session.connection == null) {
-            session.connection = datasourceService.getConnection(datasourceId);
+            session.connection = datasourceService.getConnection(datasourceId, engine);
             session.datasourceId = datasourceId;
+            session.engine = normalizedEngine;
         }
     }
 
@@ -155,6 +171,8 @@ public class SqlSessionManager {
 
     private static class Session {
         Long datasourceId;
+        /** 当前连接对应的执行引擎（HIVE / SPARK），引擎变化时重建连接 */
+        String engine;
         Connection connection;
         final ReentrantLock lock = new ReentrantLock();
         volatile long lastAccessTime = System.currentTimeMillis();

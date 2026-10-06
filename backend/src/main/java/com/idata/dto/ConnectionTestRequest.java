@@ -21,6 +21,15 @@ public class ConnectionTestRequest {
     /** JDBC URL 直连方式（可选，填写后优先使用） */
     private String jdbcUrl;
 
+    /** Spark 引擎（Spark Thrift Server）的 JDBC URL（测试 SPARK 引擎时使用） */
+    private String sparkJdbcUrl;
+
+    /** 指定测试的引擎：HIVE / SPARK（为空用数据源默认） */
+    private String engine;
+
+    /** 已有数据源 ID：测试 SPARK 引擎时可据此取 sparkJdbcUrl */
+    private Long datasourceId;
+
     private String username;
 
     private String password;

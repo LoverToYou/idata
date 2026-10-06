@@ -54,8 +54,28 @@
             />
             <div class="hint-block">
               示例：<code>jdbc:mysql://host:3306/db?useSSL=false&serverTimezone=Asia/Shanghai</code><br />
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>jdbc:hive2://host:10000/default;auth=noSasl</code><br />
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>jdbc:hive2://host:10000/default</code><br />
               类型会根据 URL 自动识别（可手动调整），主机/端口方式下拼装的参数不再生效。
+            </div>
+          </el-form-item>
+        </template>
+
+        <template v-if="form.type === 'HIVE'">
+          <el-form-item label="默认引擎">
+            <el-radio-group v-model="form.engine">
+              <el-radio-button value="HIVE">Hive</el-radio-button>
+              <el-radio-button value="SPARK">Spark</el-radio-button>
+            </el-radio-group>
+            <span class="hint-inline">任务未指定时默认用这个引擎</span>
+          </el-form-item>
+          <el-form-item label="Spark 地址">
+            <el-input
+              v-model="form.sparkJdbcUrl"
+              placeholder="jdbc:hive2://127.0.0.1:10005/default（Spark Thrift Server）"
+            />
+            <div class="hint-block">
+              Spark 引擎入口是 <b>Spark Thrift Server</b>（而非 Spark Master 8080 / Worker 8081 的 Web UI 端口）；
+              与 Hive 共用元数据，所以能看到同样的库表。
             </div>
           </el-form-item>
         </template>
@@ -77,7 +97,14 @@
           <el-button type="primary" :loading="submitting" @click="handleSubmit">
             {{ isEdit ? '保存' : '创建' }}
           </el-button>
-          <el-button :loading="testing" @click="handleTest">测试连接</el-button>
+          <el-button :loading="testing" @click="handleTest()">测试连接</el-button>
+          <el-button
+            v-if="form.type === 'HIVE'"
+            :loading="testing"
+            @click="handleTest(form.engine === 'SPARK' ? 'HIVE' : 'SPARK')"
+          >
+            测试 {{ form.engine === 'SPARK' ? 'Hive' : 'Spark' }} 引擎
+          </el-button>
           <el-button @click="$router.push('/datasource')">取消</el-button>
         </el-form-item>
       </el-form>
@@ -110,6 +137,8 @@ const form = ref<DatasourceRequest>({
   port: 3306,
   databaseName: '',
   jdbcUrl: '',
+  engine: 'HIVE',
+  sparkJdbcUrl: '',
   username: '',
   password: '',
 })
@@ -172,6 +201,8 @@ onMounted(async () => {
     port: d.port,
     databaseName: d.databaseName,
     jdbcUrl: d.jdbcUrl || '',
+    engine: d.engine || 'HIVE',
+    sparkJdbcUrl: d.sparkJdbcUrl || '',
     username: d.username,
     password: '',
   }
@@ -191,6 +222,10 @@ async function handleSubmit() {
     payload.port = undefined as unknown as number
     payload.databaseName = ''
   }
+  if (payload.type !== 'HIVE') {
+    payload.engine = undefined
+    payload.sparkJdbcUrl = ''
+  }
 
   submitting.value = true
   try {
@@ -209,13 +244,19 @@ async function handleSubmit() {
   }
 }
 
-async function handleTest() {
-  if (connMode.value === 'url' && !form.value.jdbcUrl?.trim()) {
+async function handleTest(engineOverride?: string) {
+  const engine = engineOverride || form.value.engine || 'HIVE'
+  const needJdbcUrl = engine !== 'SPARK' && connMode.value === 'url'
+  if (needJdbcUrl && !form.value.jdbcUrl?.trim()) {
     ElMessage.warning('请先填写 JDBC URL')
     return
   }
-  if (connMode.value === 'fields' && !form.value.host) {
+  if (engine !== 'SPARK' && connMode.value === 'fields' && !form.value.host) {
     ElMessage.warning('请先填写主机地址')
+    return
+  }
+  if (engine === 'SPARK' && !form.value.sparkJdbcUrl?.trim()) {
+    ElMessage.warning('请先填写 Spark 引擎地址（Spark Thrift Server）')
     return
   }
   testing.value = true
@@ -226,10 +267,12 @@ async function handleTest() {
       port: form.value.port,
       databaseName: form.value.databaseName,
       jdbcUrl: connMode.value === 'url' ? form.value.jdbcUrl?.trim() : undefined,
+      sparkJdbcUrl: form.value.sparkJdbcUrl?.trim() || undefined,
+      engine,
       username: form.value.username,
       password: form.value.password,
     })
-    ElMessage.success('连接成功')
+    ElMessage.success(`${engine === 'SPARK' ? 'Spark' : 'Hive'} 引擎连接成功`)
   } catch (e: any) {
     ElMessage.error(e.message || '连接失败')
   } finally {

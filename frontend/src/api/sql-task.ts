@@ -7,6 +7,7 @@ export interface SqlTask {
   description?: string
   datasourceId?: number
   sqlContent: string
+  engine?: string
   datasourceType?: string
   datasourceConnected?: boolean | null
   status?: string
@@ -20,6 +21,8 @@ export interface SqlTaskRequest {
   description?: string
   datasourceId?: number | null
   sqlContent: string
+  /** 执行引擎：HIVE / SPARK（空=跟随数据源默认） */
+  engine?: string | null
 }
 
 export function listTasks(keyword?: string): Promise<ApiResult<SqlTask[]>> {

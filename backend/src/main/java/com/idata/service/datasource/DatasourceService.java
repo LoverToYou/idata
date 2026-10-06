@@ -89,6 +89,8 @@ public class DatasourceService {
         validateAddress(request.getType(), request.getJdbcUrl(), request.getHost(), request.getPort());
         DatasourceConfig config = toEntity(request);
         config.setType(normalizeType(request.getType(), request.getJdbcUrl()));
+        config.setEngine(normalizeEngine(request.getEngine(), "HIVE"));
+        config.setSparkJdbcUrl(request.getSparkJdbcUrl());
         config.setPassword(passwordEncryptor.encrypt(request.getPassword()));
         datasourceConfigMapper.insert(config);
         return toVO(config);
@@ -106,6 +108,8 @@ public class DatasourceService {
         config.setPort(request.getPort());
         config.setDatabaseName(request.getDatabaseName());
         config.setJdbcUrl(request.getJdbcUrl());
+        config.setEngine(normalizeEngine(request.getEngine(), config.getEngine()));
+        config.setSparkJdbcUrl(request.getSparkJdbcUrl());
         config.setUsername(request.getUsername());
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             config.setPassword(passwordEncryptor.encrypt(request.getPassword()));
@@ -130,15 +134,46 @@ public class DatasourceService {
     }
 
     public boolean testConnection(ConnectionTestRequest request) {
-        validateAddress(request.getType(), request.getJdbcUrl(), request.getHost(), request.getPort());
-        String url = resolveUrl(request.getType(), request.getJdbcUrl(), request.getHost(),
-                request.getPort(), request.getDatabaseName());
-        Properties props = new Properties();
-        if (request.getUsername() != null) {
-            props.setProperty("user", request.getUsername());
+        // 引擎优先取请求值，其次取数据源的默认引擎
+        String engine = request.getEngine();
+        if ((engine == null || engine.isBlank()) && request.getDatasourceId() != null) {
+            engine = getEntityById(request.getDatasourceId()).getEngine();
         }
-        if (request.getPassword() != null) {
-            props.setProperty("password", request.getPassword());
+        engine = normalizeEngine(engine, null);
+
+        String url;
+        if ("SPARK".equals(engine)) {
+            String sparkUrl = request.getSparkJdbcUrl();
+            if ((sparkUrl == null || sparkUrl.isBlank()) && request.getDatasourceId() != null) {
+                sparkUrl = getEntityById(request.getDatasourceId()).getSparkJdbcUrl();
+            }
+            if (sparkUrl == null || sparkUrl.isBlank()) {
+                throw new IllegalArgumentException("请填写 Spark 引擎地址（Spark Thrift Server 的 JDBC URL）");
+            }
+            url = sparkUrl.trim();
+        } else {
+            validateAddress(request.getType(), request.getJdbcUrl(), request.getHost(), request.getPort());
+            url = resolveUrl(request.getType(), request.getJdbcUrl(), request.getHost(),
+                    request.getPort(), request.getDatabaseName());
+        }
+
+        String user = request.getUsername();
+        String password = request.getPassword();
+        if (request.getDatasourceId() != null && (user == null || user.isBlank() || password == null)) {
+            DatasourceConfig cfg = getEntityById(request.getDatasourceId());
+            if (user == null || user.isBlank()) {
+                user = cfg.getUsername();
+            }
+            if (password == null) {
+                password = cfg.getPassword();
+            }
+        }
+        Properties props = new Properties();
+        if (user != null) {
+            props.setProperty("user", user);
+        }
+        if (password != null) {
+            props.setProperty("password", password);
         }
 
         try (Connection conn = DriverManager.getConnection(url, props)) {
@@ -149,8 +184,41 @@ public class DatasourceService {
     }
 
     public boolean testConnectionById(Long id) {
+        return testConnectionById(id, null);
+    }
+
+    public boolean testConnectionById(Long id, String engine) {
         DatasourceConfig config = getEntityById(id);
-        return testConnection(toTestRequest(config));
+        ConnectionTestRequest req = toTestRequest(config);
+        req.setDatasourceId(id);
+        req.setEngine(engine);
+        req.setSparkJdbcUrl(config.getSparkJdbcUrl());
+        return testConnection(req);
+    }
+
+    /** 引擎归一化：入参优先，其次默认值，兜底 HIVE */
+    public String normalizeEngine(String engine, String defaultEngine) {
+        String e = (engine != null && !engine.isBlank()) ? engine : defaultEngine;
+        if (e == null || e.isBlank()) {
+            return "HIVE";
+        }
+        return e.trim().toUpperCase();
+    }
+
+    /**
+     * 按引擎解析连接 URL：SPARK 走 Spark Thrift Server，其余走数据源自身 URL。
+     */
+    public String resolveUrlForEngine(DatasourceConfig config, String engine) {
+        String e = normalizeEngine(engine, config.getEngine());
+        if ("SPARK".equals(e)) {
+            if (config.getSparkJdbcUrl() != null && !config.getSparkJdbcUrl().isBlank()) {
+                return config.getSparkJdbcUrl().trim();
+            }
+            throw new IllegalArgumentException("数据源[" + config.getName()
+                    + "]未配置 Spark 引擎地址（Spark Thrift Server 的 JDBC URL）");
+        }
+        return resolveUrl(config.getType(), config.getJdbcUrl(), config.getHost(),
+                config.getPort(), config.getDatabaseName());
     }
 
     /**
@@ -198,19 +266,25 @@ public class DatasourceService {
             return String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
                     host, port, databaseName != null ? databaseName : "");
         } else if ("HIVE".equalsIgnoreCase(type)) {
-            return String.format("jdbc:hive2://%s:%d/%s;auth=noSasl",
+            return String.format("jdbc:hive2://%s:%d/%s",
                     host, port, databaseName != null ? databaseName : "default");
         }
         throw new IllegalArgumentException("不支持的数据源类型: " + type);
     }
 
     public Connection getConnection(Long datasourceId) throws SQLException {
+        return getConnection(datasourceId, null);
+    }
+
+    /**
+     * 获取连接：engine 为空时使用数据源默认引擎（HIVE / SPARK）。
+     */
+    public Connection getConnection(Long datasourceId, String engine) throws SQLException {
         DatasourceConfig config = getEntityById(datasourceId);
-        String url = resolveUrl(config.getType(), config.getJdbcUrl(), config.getHost(),
-                config.getPort(), config.getDatabaseName());
+        String url = resolveUrlForEngine(config, engine);
         Properties props = new Properties();
-        props.setProperty("user", config.getUsername());
-        props.setProperty("password", config.getPassword());
+        props.setProperty("user", config.getUsername() == null ? "" : config.getUsername());
+        props.setProperty("password", config.getPassword() == null ? "" : config.getPassword());
         return DriverManager.getConnection(url, props);
     }
 
@@ -230,6 +304,8 @@ public class DatasourceService {
         req.setPort(config.getPort());
         req.setDatabaseName(config.getDatabaseName());
         req.setJdbcUrl(config.getJdbcUrl());
+        req.setSparkJdbcUrl(config.getSparkJdbcUrl());
+        req.setEngine(config.getEngine());
         req.setUsername(config.getUsername());
         req.setPassword(config.getPassword());
         return req;
@@ -243,6 +319,8 @@ public class DatasourceService {
         config.setPort(request.getPort());
         config.setDatabaseName(request.getDatabaseName());
         config.setJdbcUrl(request.getJdbcUrl());
+        config.setEngine(request.getEngine());
+        config.setSparkJdbcUrl(request.getSparkJdbcUrl());
         config.setUsername(request.getUsername());
         config.setProps(request.getProps());
         return config;
@@ -257,6 +335,8 @@ public class DatasourceService {
         vo.setPort(config.getPort());
         vo.setDatabaseName(config.getDatabaseName());
         vo.setJdbcUrl(config.getJdbcUrl());
+        vo.setEngine(config.getEngine());
+        vo.setSparkJdbcUrl(config.getSparkJdbcUrl());
         vo.setUsername(config.getUsername());
         vo.setCreatedAt(config.getCreatedAt());
         vo.setUpdatedAt(config.getUpdatedAt());

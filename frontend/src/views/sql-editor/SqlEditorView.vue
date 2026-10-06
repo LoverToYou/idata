@@ -142,6 +142,18 @@
                 :value="ds.id"
               />
             </el-select>
+            <!-- 执行引擎切换：Hive 数据源可分别走 Hive 或 Spark（两者共用元数据） -->
+            <el-select
+              v-if="currentDs?.type === 'HIVE'"
+              v-model="engine"
+              placeholder="执行引擎"
+              style="width: 140px; margin-left: 12px"
+              @change="onEngineChange"
+            >
+              <el-option label="默认引擎" value="" />
+              <el-option label="Hive 引擎" value="HIVE" />
+              <el-option label="Spark 引擎" value="SPARK" />
+            </el-select>
             <el-select
               v-if="currentDs?.type === 'HIVE'"
               v-model="selectedUdf"
@@ -503,7 +515,7 @@ async function handleBackToList(skipSave = false) {
     if (name) {
       saving.value = true
       try {
-        const updatePayload: Record<string, any> = { id: currentTaskId.value, name, sqlContent: sql, datasourceId: selectedDatasource.value || null }
+        const updatePayload: Record<string, any> = { id: currentTaskId.value, name, sqlContent: sql, datasourceId: selectedDatasource.value || null, engine: engine.value || null }
         if (currentTask.value?.description) updatePayload.description = currentTask.value.description
         await updateTask(updatePayload as SqlTaskRequest)
         dirty.value = false
@@ -602,6 +614,7 @@ async function loadTaskDetail(id: number) {
     }
     if (detail.datasourceId) {
       selectedDatasource.value = detail.datasourceId
+      engine.value = detail.engine || ''
       try {
         await loadDatabases(detail.datasourceId)
         await loadAllTables(detail.datasourceId)
@@ -729,6 +742,7 @@ async function handleSave(silent = false) {
       name: taskName.value.trim(),
       sqlContent: sql,
       datasourceId: selectedDatasource.value || null,
+      engine: engine.value || null,
     }
     if (currentTask.value?.description) {
       payload.description = currentTask.value.description
@@ -789,6 +803,8 @@ async function handleUnpublishTable(task: any) {
 // --- Datasource ---
 const datasources = ref<DatasourceConfig[]>([])
 const selectedDatasource = ref<number | undefined>()
+/** 执行引擎：'' = 跟随数据源默认，HIVE / SPARK 为显式指定 */
+const engine = ref<string>('')
 const currentDs = computed(() => datasources.value.find(d => d.id === selectedDatasource.value))
 const saving = ref(false)
 
@@ -952,6 +968,19 @@ async function loadKeywords(dbType: string = 'MYSQL') {
     keywords.value = res.data
     registerKeywordCompletion()
   } catch { /* ignore */ }
+}
+
+/** 切换执行引擎：重建会话连接，让后续语句落在目标引擎上 */
+async function onEngineChange() {
+  if (mode.value === 'edit') rotateSession()
+  if (selectedDatasource.value) {
+    try {
+      await loadDatabases(selectedDatasource.value)
+      await loadAllTables(selectedDatasource.value)
+    } catch {
+      // 引擎不可用（如 Spark Thrift Server 未启动）不影响编写
+    }
+  }
 }
 
 async function loadDatabases(datasourceId: number) {
@@ -1246,6 +1275,10 @@ async function onDatasourceChange(val: number) {
   if (mode.value === 'edit') rotateSession()
   selectedDatasource.value = val
   const ds = datasources.value.find((d) => d.id === val)
+  // 非 Hive 数据源不支持引擎切换，重置选择
+  if (!ds || ds.type !== 'HIVE') {
+    engine.value = ''
+  }
   if (ds) {
     loadKeywords(ds.type)
   }
@@ -1312,7 +1345,7 @@ async function handleExecute() {
     const label = resolvedStmt.length > 80 ? resolvedStmt.slice(0, 80) + '...' : resolvedStmt
     try {
       addExecLog(`执行: ${label}`, 'info')
-      const res = await executeSql(selectedDatasource.value, resolvedStmt, sessionId.value ?? undefined)
+      const res = await executeSql(selectedDatasource.value, resolvedStmt, sessionId.value ?? undefined, engine.value || undefined)
       const result = res.data
       stmts.push({ id: nextStmtId++, sql: origStmt, resolvedSql: resolvedStmt, result })
       if (result.errorMessage) {
@@ -1354,7 +1387,7 @@ async function handleExplain() {
   explaining.value = true
   activeTab.value = 'plan'
   try {
-    const res = await explainSql(selectedDatasource.value, stmtToExplain, sessionId.value ?? undefined)
+    const res = await explainSql(selectedDatasource.value, stmtToExplain, sessionId.value ?? undefined, engine.value || undefined)
     planResult.value = res.data
   } finally {
     explaining.value = false

@@ -36,25 +36,25 @@ export function testConnection(data: ConnectionTestRequest): Promise<ApiResult<b
   return request.post('/datasource/test-connection', data)
 }
 
-export function testConnectionById(id: number): Promise<ApiResult<boolean>> {
-  return request.post(`/datasource/test-connection/${id}`)
+export function testConnectionById(id: number, engine?: string): Promise<ApiResult<boolean>> {
+  return request.post(`/datasource/test-connection/${id}`, null, { params: { engine } })
 }
 
 // Hive metadata
-export function listHiveDatabases(id: number): Promise<ApiResult<string[]>> {
-  return request.get(`/datasource/${id}/hive/databases`)
+export function listHiveDatabases(id: number, engine?: string): Promise<ApiResult<string[]>> {
+  return request.get(`/datasource/${id}/hive/databases`, { params: { engine } })
 }
 
-export function listHiveTables(id: number, database: string): Promise<ApiResult<string[]>> {
-  return request.get(`/datasource/${id}/hive/${database}/tables`)
+export function listHiveTables(id: number, database: string, engine?: string): Promise<ApiResult<string[]>> {
+  return request.get(`/datasource/${id}/hive/${database}/tables`, { params: { engine } })
 }
 
-export function getHiveTableSchema(id: number, database: string, table: string): Promise<ApiResult<any[]>> {
-  return request.get(`/datasource/${id}/hive/${database}/tables/${table}/schema`)
+export function getHiveTableSchema(id: number, database: string, table: string, engine?: string): Promise<ApiResult<any[]>> {
+  return request.get(`/datasource/${id}/hive/${database}/tables/${table}/schema`, { params: { engine } })
 }
 
-export function getHiveTablePartitions(id: number, database: string, table: string): Promise<ApiResult<any[]>> {
-  return request.get(`/datasource/${id}/hive/${database}/tables/${table}/partitions`)
+export function getHiveTablePartitions(id: number, database: string, table: string, engine?: string): Promise<ApiResult<any[]>> {
+  return request.get(`/datasource/${id}/hive/${database}/tables/${table}/partitions`, { params: { engine } })
 }
 
 // Generic JDBC metadata

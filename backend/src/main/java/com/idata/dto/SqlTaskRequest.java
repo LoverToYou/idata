@@ -15,4 +15,7 @@ public class SqlTaskRequest {
     private Long datasourceId;
 
     private String sqlContent;
+
+    /** 执行引擎：HIVE / SPARK（空=跟随数据源默认） */
+    private String engine;
 }

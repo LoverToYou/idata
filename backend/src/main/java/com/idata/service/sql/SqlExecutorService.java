@@ -21,10 +21,17 @@ public class SqlExecutorService {
     }
 
     public SqlExecuteResult execute(Long datasourceId, String sql) {
-        return execute(datasourceId, sql, null);
+        return execute(datasourceId, sql, null, null);
     }
 
     public SqlExecuteResult execute(Long datasourceId, String sql, String sessionId) {
+        return execute(datasourceId, sql, sessionId, null);
+    }
+
+    /**
+     * 执行 SQL；engine 为空时用数据源默认引擎（HIVE / SPARK）。
+     */
+    public SqlExecuteResult execute(Long datasourceId, String sql, String sessionId, String engine) {
         SqlExecuteResult result = new SqlExecuteResult();
         long start = System.currentTimeMillis();
 
@@ -33,7 +40,7 @@ public class SqlExecutorService {
                 || upperSql.startsWith("DESCRIBE") || upperSql.startsWith("EXPLAIN");
 
         try {
-            sqlSessionManager.run(sessionId, datasourceId, conn -> {
+            sqlSessionManager.run(sessionId, datasourceId, engine, conn -> {
                 try (Statement stmt = conn.createStatement()) {
                     if (isQuery) {
                         try (ResultSet rs = stmt.executeQuery(sql)) {
@@ -73,15 +80,19 @@ public class SqlExecutorService {
     }
 
     public ExplainPlanResult explain(Long datasourceId, String sql) {
-        return explain(datasourceId, sql, null);
+        return explain(datasourceId, sql, null, null);
     }
 
     public ExplainPlanResult explain(Long datasourceId, String sql, String sessionId) {
+        return explain(datasourceId, sql, sessionId, null);
+    }
+
+    public ExplainPlanResult explain(Long datasourceId, String sql, String sessionId, String engine) {
         ExplainPlanResult result = new ExplainPlanResult();
         long start = System.currentTimeMillis();
 
         try {
-            sqlSessionManager.run(sessionId, datasourceId, conn -> {
+            sqlSessionManager.run(sessionId, datasourceId, engine, conn -> {
                 try (Statement stmt = conn.createStatement()) {
                     String configSql = "EXPLAIN " + sql;
                     try (ResultSet rs = stmt.executeQuery(configSql)) {

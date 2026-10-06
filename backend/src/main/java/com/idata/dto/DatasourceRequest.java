@@ -22,6 +22,12 @@ public class DatasourceRequest {
     /** JDBC URL 直连方式（可选，填写后优先于 host/port/databaseName） */
     private String jdbcUrl;
 
+    /** 默认执行引擎：HIVE / SPARK（为空按 HIVE 处理） */
+    private String engine;
+
+    /** Spark 引擎（Spark Thrift Server）的 JDBC URL */
+    private String sparkJdbcUrl;
+
     @NotBlank(message = "用户名不能为空")
     private String username;
 
