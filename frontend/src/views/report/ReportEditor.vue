@@ -20,7 +20,7 @@
           </el-col>
           <el-col :span="8">
             <el-form-item label="数据源" required>
-              <el-select v-model="form.datasourceId" placeholder="选择数据源" style="width: 100%">
+              <el-select v-model="form.datasourceId" placeholder="选择数据源" style="width: 100%" @change="handleDatasourceChange">
                 <el-option v-for="ds in datasources" :key="ds.id" :label="ds.name" :value="ds.id as number" />
               </el-select>
             </el-form-item>
@@ -112,11 +112,14 @@ import { ElMessage } from 'element-plus'
 import * as monaco from 'monaco-editor'
 import Layout from '@/components/common/Layout.vue'
 import EChart from '@/components/chart/EChart.vue'
-import { listDatasources } from '@/api/datasource'
+import { listDatasources, listDatasourceDatabases, listDatasourceTables } from '@/api/datasource'
 import { createReport, getReport, moveReport, previewReport, updateReport, type SqlResult } from '@/api/report'
 import { buildFolderTree, listFolders, type FolderItem } from '@/api/folder'
 import { buildChartOption, parseChartConfig, type ChartConfig } from '@/utils/reportChart'
-import type { DatasourceConfig } from '@/types'
+import { detectGrammarContext, getCachedGrammarContext, getSqlKeywords, setCachedGrammarContext, type SqlKeywords } from '@/api/grammar'
+import { listUdfsByDatasource } from '@/api/udf'
+import { createGrammarContextUpdater, registerSqlCompletion, type SqlTableRef } from '@/utils/sqlCompletion'
+import type { DatasourceConfig, UdfDefinition } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -128,6 +131,15 @@ const previewing = ref(false)
 const result = ref<SqlResult | null>(null)
 const sqlContainer = ref<HTMLDivElement>()
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
+let completionDisposable: monaco.IDisposable | null = null
+
+// --- SQL 提示：补全候选来源（关键字 / 库 / 表 / UDF）---
+const keywords = ref<SqlKeywords | null>(null)
+const databases = ref<string[]>([])
+const tables = ref<SqlTableRef[]>([])
+const tablesByDb = ref<Record<string, SqlTableRef[]>>({})
+const udfs = ref<UdfDefinition[]>([])
+const grammarUpdater = createGrammarContextUpdater(detectGrammarContext, setCachedGrammarContext)
 
 const form = reactive({
   name: '',
@@ -151,7 +163,7 @@ const chartOption = computed(() =>
 
 function initEditor() {
   if (!sqlContainer.value) return
-  editor = monaco.editor.create(sqlContainer.value, {
+  const ed = monaco.editor.create(sqlContainer.value, {
     value: form.sqlContent,
     language: 'sql',
     theme: 'vs',
@@ -159,10 +171,108 @@ function initEditor() {
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     automaticLayout: true,
+    quickSuggestions: true,
+    suggestOnTriggerCharacters: true,
   })
-  editor.onDidChangeModelContent(() => {
-    form.sqlContent = editor!.getValue()
+  editor = ed
+
+  ed.onDidChangeModelContent(() => {
+    form.sqlContent = ed.getValue()
   })
+
+  // 光标移动时刷新语法上下文，补全据此按位置过滤候选
+  ed.onDidChangeCursorPosition(() => {
+    const model = ed.getModel()
+    const pos = ed.getPosition()
+    if (!model || !pos) return
+    const sql = model.getValue()
+    if (!sql.trim()) return
+    grammarUpdater.update(sql, model.getOffsetAt(pos))
+  })
+
+  completionDisposable?.dispose()
+  completionDisposable = registerSqlCompletion(() => ({
+    keywords: keywords.value,
+    databases: databases.value,
+    tables: tables.value,
+    tablesByDb: tablesByDb.value,
+    udfs: udfs.value,
+    datasourceType: currentDatasourceType.value,
+    grammarContext: getCachedGrammarContext(),
+  }))
+}
+
+const currentDatasourceType = computed(
+  () => datasources.value.find((d) => d.id === form.datasourceId)?.type,
+)
+
+// --- SQL 提示：候选数据加载 ---
+
+async function loadKeywords(dbType = 'MYSQL') {
+  try {
+    const res = await getSqlKeywords(dbType)
+    keywords.value = res.data
+  } catch { /* ignore */ }
+}
+
+async function loadDatabases(datasourceId: number) {
+  try {
+    const res = await listDatasourceDatabases(datasourceId)
+    databases.value = res.data || []
+  } catch {
+    databases.value = []
+  }
+}
+
+async function loadTables(datasourceId: number, database?: string) {
+  try {
+    const res = await listDatasourceTables(datasourceId, database)
+    const mapped = (res.data || [])
+      .map((t: any) => ({
+        tableName: t.tableName || t.TABLE_NAME || '',
+        schema: t.tableSchema || t.TABLE_SCHEMA || (database || ''),
+      }))
+      .filter((t: SqlTableRef) => t.tableName)
+    if (database) tablesByDb.value[database.toUpperCase()] = mapped
+    else tables.value = mapped
+  } catch {
+    if (database) tablesByDb.value[database.toUpperCase()] = []
+    else tables.value = []
+  }
+}
+
+async function loadUdfs(datasourceId: number) {
+  try {
+    const res = await listUdfsByDatasource(datasourceId)
+    udfs.value = res.data || []
+  } catch {
+    udfs.value = []
+  }
+}
+
+/** 按当前数据源刷新关键字 / 库 / 表 / UDF，供 SQL 补全使用 */
+async function refreshSqlHints() {
+  const id = form.datasourceId
+  await loadKeywords(currentDatasourceType.value || 'MYSQL')
+  if (!id) {
+    databases.value = []
+    tables.value = []
+    tablesByDb.value = {}
+    udfs.value = []
+    return
+  }
+  try {
+    await loadDatabases(id)
+    await loadTables(id)
+    await Promise.all(databases.value.map((db) => loadTables(id, db)))
+    await loadUdfs(id)
+  } catch {
+    // 数据源不可用（如未启动）时不影响 SQL 编写
+  }
+}
+
+function handleDatasourceChange() {
+  refreshSqlHints()
 }
 
 async function loadDatasources() {
@@ -276,9 +386,14 @@ onMounted(async () => {
       ElMessage.error(e.message || '加载报表失败')
     }
   }
+  // 先加载关键字（不依赖数据源），再按已选数据源补齐库 / 表 / UDF
+  await refreshSqlHints()
 })
 
 onBeforeUnmount(() => {
+  completionDisposable?.dispose()
+  completionDisposable = null
+  grammarUpdater.dispose()
   editor?.dispose()
   editor = null
 })

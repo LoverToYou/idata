@@ -475,6 +475,7 @@ import type { DatasourceConfig, UdfDefinition } from '@/types'
 import type { SqlTaskRequest } from '@/api/sql-task'
 import type { SqlExecuteResult, ExplainPlanResult, SqlAnalysis, SqlSuggestion } from '@/api/sql'
 import { listUdfsByDatasource, registerUdf } from '@/api/udf'
+import { registerSqlCompletion } from '@/utils/sqlCompletion'
 import { resolveParams } from '@/api/parameter'
 import * as monaco from 'monaco-editor'
 import { format as formatSql } from 'sql-formatter'
@@ -1064,142 +1065,15 @@ function updateGrammarContext(sql: string, pos: number) {
 
 function registerKeywordCompletion() {
   keywordCompletionDisposable?.dispose()
-  if (!keywords.value) return
-  keywordCompletionDisposable = monaco.languages.registerCompletionItemProvider('sql', {
-    triggerCharacters: ['.', ' '],
-    provideCompletionItems: (model, position) => {
-      const ctx = getCachedGrammarContext()
-      const result: any[] = []
-      const ks = monaco.languages.CompletionItemKind
-
-      // --- Dot prefix detection from model text ---
-      // When grammar context hasn't been updated yet (e.g. just typed '.'),
-      // infer the dot prefix from the text before cursor.
-      let effectivePrefix = ctx?.dotPrefix
-      let effectivePrefixType = ctx?.dotPrefixType
-      if (!effectivePrefix) {
-        const lineContent = model.getLineContent(position.lineNumber)
-        const textBefore = lineContent.substring(0, position.column - 1)
-        const dotMatch = textBefore.match(/(\w+)\.\s*$/)
-        if (dotMatch) {
-          effectivePrefix = dotMatch[1].toUpperCase()
-          effectivePrefixType = ctx?.expectsTable ? 'DATABASE' : undefined
-          // If ctx not available (debounce not yet fired), infer DATABASE type from known databases
-          if (!effectivePrefixType && databases.value.some(d => d.toUpperCase() === effectivePrefix)) {
-            effectivePrefixType = 'DATABASE'
-          }
-        }
-      }
-
-      // --- Database name suggestions ---
-      // When ctx is not yet loaded, default to showing all databases
-      if (!effectivePrefix && databases.value.length > 0) {
-        if (!ctx || ctx.expectsDatabase) {
-          result.push(...databases.value.map(db => ({
-            label: db,
-            kind: ks.Module,
-            insertText: db + '.',
-            detail: '数据库',
-            sortText: 'b' + db,
-          })))
-        }
-      }
-
-      // --- Table name suggestions ---
-      // When ctx is not yet loaded, default to showing all tables
-      if ((!ctx || ctx.expectsTable) && tables.value.length > 0) {
-        if (effectivePrefix && effectivePrefixType === 'DATABASE') {
-          const prefix = effectivePrefix
-          // Use pre-loaded per-database tables if available, fall back to filtering the default list
-          const perDb = tablesByDb.value[prefix]
-          if (perDb && perDb.length > 0) {
-            result.push(...perDb.map(t => ({
-              label: t.tableName,
-              kind: ks.Class,
-              insertText: t.tableName,
-              detail: '表名 (' + t.schema + ')',
-              sortText: 'a' + t.tableName,
-            })))
-          } else {
-            const filtered = tables.value.filter(t => t.schema.toUpperCase() === prefix)
-            result.push(...filtered.map(t => ({
-              label: t.tableName,
-              kind: ks.Class,
-              insertText: t.tableName,
-              detail: '表名 (' + t.schema + ')',
-              sortText: 'a' + t.tableName,
-            })))
-          }
-        } else {
-          result.push(...tables.value.map(t => ({
-            label: t.tableName,
-            kind: ks.Class,
-            insertText: t.tableName,
-            detail: '表名',
-            sortText: 'a' + t.tableName,
-          })))
-        }
-      }
-
-      // --- Keyword suggestions (filtered by context) ---
-      if (keywords.value) {
-        const kw = keywords.value
-        const allSuggestions = [
-          ...kw.statements.map(k => ({ label: k, kind: ks.Keyword, insertText: k, detail: 'SQL 语句', sortText: 'z' + k })),
-          ...kw.functions.map(k => ({ label: k, kind: ks.Function, insertText: k, detail: '内置函数', sortText: 'z' + k })),
-          ...kw.types.map(k => ({ label: k, kind: ks.TypeParameter, insertText: k, detail: '数据类型', sortText: 'z' + k })),
-          ...kw.clauses.map(k => ({ label: k, kind: ks.Keyword, insertText: k, detail: 'SQL 子句', sortText: 'z' + k })),
-        ]
-        if (!ctx) {
-          result.push(...allSuggestions)
-        } else {
-          const validList = ctx.validKeywords.map(k => k.toUpperCase())
-          // 构建优先级索引：validKeywords 中越靠前优先级越高
-          const priorityIndex: Record<string, string> = {}
-          validList.forEach((k, i) => {
-            priorityIndex[k] = String(i).padStart(3, '0')
-          })
-          const expectFunction = ctx.expectsFunction
-          result.push(...allSuggestions
-            .filter(s => {
-              const label = (s.label as string).toUpperCase()
-              if (s.detail === '内置函数' || label.endsWith('()')) return expectFunction
-              if (s.detail === '数据类型') return true
-              if (s.detail === 'SQL 语句' || s.detail === 'SQL 子句') {
-                if (validList.length === 0) return true
-                return validList.some(v => label.includes(v) || v.includes(label))
-              }
-              return true
-            })
-            .map(s => {
-              const label = (s.label as string).toUpperCase()
-              const prio = priorityIndex[label]
-              if (prio !== undefined) {
-                return { ...s, sortText: 'a' + prio + label }
-              }
-              return s
-            })
-          )
-        }
-      }
-
-      // --- Hive UDF suggestions (from UDF module) ---
-      if (currentDs.value?.type === 'HIVE' && udfs.value.length > 0) {
-        const registeredUdfs = udfs.value.filter(u => u.registerStatus === 'REGISTERED')
-        if (registeredUdfs.length > 0 && (!ctx || ctx.expectsFunction)) {
-          result.push(...registeredUdfs.map(u => ({
-            label: `${u.databaseName}.${u.name}`,
-            kind: ks.Function,
-            insertText: `${u.databaseName}.${u.name}(`,
-            detail: 'Hive UDF',
-            sortText: 'y' + u.name,
-          })))
-        }
-      }
-
-      return { suggestions: result }
-    },
-  })
+  keywordCompletionDisposable = registerSqlCompletion(() => ({
+    keywords: keywords.value,
+    databases: databases.value,
+    tables: tables.value,
+    tablesByDb: tablesByDb.value,
+    udfs: udfs.value,
+    datasourceType: currentDs.value?.type,
+    grammarContext: getCachedGrammarContext(),
+  }))
 }
 
 // --- Monaco Editor ---
