@@ -59,10 +59,8 @@
         <el-menu
           :default-active="activeRoute"
           :default-openeds="defaultOpeneds"
-          unique-opened
           router
           class="side-menu"
-          @open="onGroupOpen"
         >
           <el-menu-item index="/dashboard">
             <el-icon><Odometer /></el-icon>
@@ -134,18 +132,8 @@ function isChildActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
 }
 
-// ---- 左侧模式：分组展开记忆 ----
-const OPEN_KEY = 'idata.menu.openGroup'
-const defaultOpeneds = computed(() => {
-  const active = groupKeyOfPath(route.path)
-  if (active) return [active]
-  const saved = sessionStorage.getItem(OPEN_KEY)
-  return saved ? [saved] : []
-})
-
-function onGroupOpen(key: string) {
-  sessionStorage.setItem(OPEN_KEY, key)
-}
+// ---- 左侧模式：默认展开全部分组，菜单按上下级层级展示 ----
+const defaultOpeneds = MENU_GROUPS.map((g) => g.key)
 
 // ---- 左侧模式：菜单滚动位置记忆 ----
 const menuScrollEl = ref<HTMLElement>()
@@ -413,11 +401,14 @@ function autoFillSingleCard() {
 
 .side-menu :deep(.el-sub-menu .el-menu) {
   background: transparent;
+  margin-left: 17px;
+  padding-left: 0;
+  border-left: 1px solid var(--border-light);
 }
 
 .side-menu :deep(.el-sub-menu .el-menu-item) {
   min-width: 0;
-  padding-left: 30px !important;
+  padding-left: 13px !important;
   height: 34px;
   line-height: 34px;
   font-size: var(--fs-base);
