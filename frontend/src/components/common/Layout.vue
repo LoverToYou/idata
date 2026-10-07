@@ -34,7 +34,6 @@
 
       <div class="sub-bar">
         <template v-if="activeGroup">
-          <span class="sub-group-label">{{ activeGroup.title }}</span>
           <div
             v-for="child in activeGroup.children"
             :key="child.path"
@@ -46,7 +45,6 @@
           </div>
         </template>
         <template v-else>
-          <span class="sub-group-label">概览</span>
           <span class="sub-hint">{{ totalFeatures }} 个功能</span>
         </template>
       </div>
@@ -104,7 +102,6 @@
     <div class="content-area">
       <header class="header">
         <span class="page-title">{{ pageTitle }}</span>
-        <span v-if="groupTitle" class="page-group">{{ groupTitle }}</span>
       </header>
       <main class="main-content">
         <slot />
@@ -127,7 +124,6 @@ const activeRoute = computed(() => route.path)
 const pageTitle = computed(() => (route.meta.title as string) || 'IDATA')
 const activeGroupKey = computed(() => groupKeyOfPath(route.path))
 const activeGroup = computed(() => MENU_GROUPS.find((g) => g.key === activeGroupKey.value))
-const groupTitle = computed(() => activeGroup.value?.title || '')
 const isHome = computed(() => route.path === '/dashboard')
 const totalFeatures = computed(
   () => MENU_GROUPS.reduce((n, g) => n + g.children.length, 0) + MENU_TOP_ITEMS.length,
@@ -289,13 +285,6 @@ function autoFillSingleCard() {
   overflow-x: auto;
   background: var(--bg-muted);
   border-top: 1px solid var(--border-light);
-}
-
-.sub-group-label {
-  font-size: var(--fs-sm);
-  color: var(--text-sub);
-  margin-right: 8px;
-  white-space: nowrap;
 }
 
 .sub-hint {
@@ -471,11 +460,6 @@ function autoFillSingleCard() {
   font-size: var(--fs-title);
   font-weight: 600;
   color: var(--text-title);
-}
-
-.page-group {
-  font-size: var(--fs-sm);
-  color: var(--text-faint);
 }
 
 .main-content {

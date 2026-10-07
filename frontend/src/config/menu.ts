@@ -55,7 +55,6 @@ export const MENU_GROUPS: MenuGroup[] = [
       { path: '/sql-task', title: 'SQL 任务管理', icon: Document, desc: 'SQL 编辑、优化与任务化' },
       { path: '/python-script', title: 'Python 脚本', icon: Cpu, desc: '脚本开发与运行记录' },
       { path: '/udf', title: 'UDF 管理', icon: MagicStick, desc: '自定义函数注册与验证' },
-      { path: '/parameter', title: '参数管理', icon: Coin, desc: '全局参数与动态时间变量' },
     ],
   },
   {
@@ -67,6 +66,7 @@ export const MENU_GROUPS: MenuGroup[] = [
       { path: '/workflow', title: '工作流管理', icon: List, desc: 'DAG 工作流编排' },
       { path: '/schedule', title: '定时调度', icon: Timer, desc: 'Cron 调度与失败重试' },
       { path: '/datax-task', title: 'ETL 任务管理', icon: Share, desc: 'DataX 数据同步任务' },
+      { path: '/parameter', title: '参数管理', icon: Coin, desc: '全局参数与动态时间变量' },
       { path: '/monitor', title: '任务监控', icon: Monitor, desc: '实例与节点执行日志' },
     ],
   },
