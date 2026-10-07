@@ -87,7 +87,25 @@
                 {{ result.rows.length }} 行 / {{ result.elapsedMs }} ms
               </span>
             </div>
-            <EChart v-if="chartOption" :option="chartOption" height="300px" />
+            <!-- 表格型：预览区直接展示数据表格（图表位置）；其他类型先画图 -->
+            <el-table
+              v-if="result && isTableType"
+              :data="result.rows.slice(0, 100)"
+              border
+              stripe
+              height="300"
+              style="width: 100%"
+            >
+              <el-table-column
+                v-for="c in result.columns"
+                :key="c"
+                :prop="c"
+                :label="c"
+                min-width="120"
+                show-overflow-tooltip
+              />
+            </el-table>
+            <EChart v-else-if="chartOption" :option="chartOption" height="300px" />
             <el-empty v-else-if="!result" description="点击「运行预览」查看结果" :image-size="70" />
           </el-col>
         </el-row>
@@ -157,6 +175,7 @@ const folders = ref<FolderItem[]>([])
 const folderOptions = computed(() => buildFolderTree(folders.value))
 
 const columns = computed(() => result.value?.columns || [])
+const isTableType = computed(() => (form.chartType || 'TABLE').toUpperCase() === 'TABLE')
 const chartOption = computed(() =>
   result.value ? buildChartOption(form.chartType, result.value.columns, result.value.rows, config) : null,
 )
