@@ -399,6 +399,11 @@ function autoFillSingleCard() {
   color: var(--text-title);
 }
 
+/* 分组默认全展开，去掉折叠箭头标识 */
+.side-menu :deep(.el-sub-menu__icon-arrow) {
+  display: none;
+}
+
 .side-menu :deep(.el-sub-menu .el-menu) {
   background: transparent;
   margin-left: 17px;
