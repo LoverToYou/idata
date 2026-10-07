@@ -369,7 +369,7 @@ function autoFillSingleCard() {
 .side-menu .el-menu-item {
   height: 36px;
   line-height: 36px;
-  font-size: var(--fs-base);
+  font-size: var(--fs-sm);
   color: var(--text-body);
   border-radius: var(--radius);
   margin-bottom: 1px;
@@ -389,14 +389,12 @@ function autoFillSingleCard() {
 .side-menu :deep(.el-sub-menu__title) {
   height: 38px;
   line-height: 38px;
-  font-size: var(--fs-base);
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   border-radius: var(--radius);
-}
-
-.side-menu :deep(.el-sub-menu__title:hover) {
-  background: #f5f6f8;
-  color: var(--text-title);
+  /* 分组固定全展开，不再提供折叠交互 */
+  pointer-events: none;
+  cursor: default;
 }
 
 /* 分组默认全展开，去掉折叠箭头标识 */
@@ -416,7 +414,7 @@ function autoFillSingleCard() {
   padding-left: 13px !important;
   height: 34px;
   line-height: 34px;
-  font-size: var(--fs-base);
+  font-size: var(--fs-xs);
 }
 
 .side-menu :deep(.el-sub-menu.is-active .el-sub-menu__title) {
