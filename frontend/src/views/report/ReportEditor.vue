@@ -35,17 +35,6 @@
         <el-form-item label="描述">
           <el-input v-model="form.description" placeholder="选填" />
         </el-form-item>
-        <el-form-item label="所属文件夹">
-          <el-tree-select
-            v-model="form.folderId"
-            :data="folderOptions"
-            check-strictly
-            clearable
-            default-expand-all
-            placeholder="未分组"
-            style="width: 320px"
-          />
-        </el-form-item>
 
         <el-row :gutter="16">
           <el-col :span="12">
@@ -132,7 +121,6 @@ import Layout from '@/components/common/Layout.vue'
 import EChart from '@/components/chart/EChart.vue'
 import { listDatasources, listDatasourceDatabases, listDatasourceTables } from '@/api/datasource'
 import { createReport, getReport, moveReport, previewReport, updateReport, type SqlResult } from '@/api/report'
-import { buildFolderTree, listFolders, type FolderItem } from '@/api/folder'
 import { buildChartOption, parseChartConfig, type ChartConfig } from '@/utils/reportChart'
 import { detectGrammarContext, getCachedGrammarContext, getSqlKeywords, setCachedGrammarContext, type SqlKeywords } from '@/api/grammar'
 import { listUdfsByDatasource } from '@/api/udf'
@@ -170,9 +158,6 @@ const form = reactive({
 })
 
 const config = reactive<ChartConfig>({ xField: undefined, yFields: [], seriesField: undefined, limit: 0 })
-
-const folders = ref<FolderItem[]>([])
-const folderOptions = computed(() => buildFolderTree(folders.value))
 
 const columns = computed(() => result.value?.columns || [])
 const isTableType = computed(() => (form.chartType || 'TABLE').toUpperCase() === 'TABLE')
@@ -261,6 +246,11 @@ async function loadTables(datasourceId: number, database?: string) {
 }
 
 async function loadUdfs(datasourceId: number) {
+  // UDF 仅 Hive 数据源可用，其他类型后端会返回 400
+  if (currentDatasourceType.value !== 'HIVE') {
+    udfs.value = []
+    return
+  }
   try {
     const res = await listUdfsByDatasource(datasourceId)
     udfs.value = res.data || []
@@ -298,15 +288,6 @@ async function loadDatasources() {
   try {
     const res = await listDatasources()
     datasources.value = res.data || []
-  } catch {
-    /* ignore */
-  }
-}
-
-async function loadFolders() {
-  try {
-    const res = await listFolders('REPORT')
-    folders.value = res.data || []
   } catch {
     /* ignore */
   }
@@ -396,7 +377,6 @@ async function handleSave() {
 
 onMounted(async () => {
   await loadDatasources()
-  await loadFolders()
   initEditor()
   if (isEditing.value) {
     try {
