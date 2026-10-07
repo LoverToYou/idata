@@ -123,6 +123,11 @@ body {
   --el-table-row-hover-bg-color: #f7f9fc;
 }
 
+/* 表格内操作按钮更紧凑，行高不被撑开 */
+.el-table .cell .el-button + .el-button {
+  margin-left: 8px;
+}
+
 .el-table th.el-table__cell {
   background: var(--bg-muted) !important;
   font-weight: 600;
@@ -130,7 +135,7 @@ body {
 }
 
 .el-table .el-table__cell {
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
