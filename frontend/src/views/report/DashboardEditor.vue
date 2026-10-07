@@ -453,6 +453,10 @@ onMounted(async () => {
     } catch (e: any) {
       ElMessage.error(e.message || '加载看板失败')
     }
+  } else {
+    // 从目录树的「+」进入时预选文件夹
+    const presetFolder = Number(route.query.folderId)
+    if (presetFolder) info.folderId = presetFolder
   }
   measure()
   observer = new ResizeObserver(measure)

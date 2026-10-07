@@ -2,13 +2,20 @@
   <div class="folder-tree">
     <div class="tree-header">
       <span class="tree-title">{{ title }}</span>
-      <span class="tree-tip">点击筛选</span>
+      <el-tooltip content="新建文件夹" placement="top">
+        <el-icon class="header-action" @click="createFolderNode(null)"><FolderAdd /></el-icon>
+      </el-tooltip>
     </div>
 
     <div class="tree-node" :class="{ active: modelValue === 'none' }" @click="select('none')">
       <el-icon><FolderOpened /></el-icon>
       <span class="node-label">未分组</span>
       <span class="node-count">{{ noneCount }}</span>
+      <span class="node-actions">
+        <el-tooltip :content="`新建${itemLabel}`" placement="top">
+          <el-icon @click.stop="createItem(null)"><Plus /></el-icon>
+        </el-tooltip>
+      </span>
     </div>
 
     <el-tree
@@ -26,7 +33,12 @@
           <span class="node-label" :title="data.name">{{ data.name }}</span>
           <span class="node-count">{{ data.count }}</span>
           <span class="node-actions">
-            <el-icon title="新建子文件夹" @click.stop="createFolderNode(data.id)"><Plus /></el-icon>
+            <el-tooltip :content="`新建${itemLabel}`" placement="top">
+              <el-icon @click.stop="createItem(data.id)"><Plus /></el-icon>
+            </el-tooltip>
+            <el-tooltip content="新建子文件夹" placement="top">
+              <el-icon @click.stop="createFolderNode(data.id)"><FolderAdd /></el-icon>
+            </el-tooltip>
             <el-icon title="重命名" @click.stop="renameFolderNode(data)"><EditPen /></el-icon>
             <el-icon title="删除" @click.stop="removeFolderNode(data)"><Delete /></el-icon>
           </span>
@@ -41,7 +53,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, EditPen, FolderOpened, Plus } from '@element-plus/icons-vue'
+import { Delete, EditPen, FolderAdd, FolderOpened, Plus } from '@element-plus/icons-vue'
 import {
   createFolder,
   deleteFolder,
@@ -52,18 +64,29 @@ import {
   type FolderSelection,
 } from '@/api/folder'
 
-const props = defineProps<{
-  title?: string
-  bizType: BizType
-  modelValue: FolderSelection
-  folders: FolderItem[]
-  items: Array<{ folderId?: number | null }>
-}>()
+const props = withDefaults(
+  defineProps<{
+    title?: string
+    /** 目录内条目的名称，用于「新建xx」提示，如 报表 / 看板 */
+    itemLabel?: string
+    bizType: BizType
+    modelValue: FolderSelection
+    folders: FolderItem[]
+    items: Array<{ folderId?: number | null }>
+  }>(),
+  { itemLabel: '报表' },
+)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: FolderSelection): void
   (e: 'changed'): void
+  /** 在指定目录（null = 未分组）下新建条目，由父组件负责跳转创建页 */
+  (e: 'create-item', folderId: number | null): void
 }>()
+
+function createItem(folderId: number | null) {
+  emit('create-item', folderId)
+}
 
 const noneCount = computed(() => props.items.filter((i) => !i.folderId).length)
 
@@ -157,6 +180,14 @@ async function removeFolderNode(node: { id: number; name: string }) {
   font-size: var(--fs-xs);
   color: var(--text-faint);
 }
+.header-action {
+  cursor: pointer;
+  color: var(--text-sub);
+  font-size: var(--fs-base);
+}
+.header-action:hover {
+  color: var(--primary);
+}
 .tree-node {
   display: flex;
   align-items: center;
@@ -196,14 +227,15 @@ async function removeFolderNode(node: { id: number; name: string }) {
 .node-actions {
   display: none;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   color: var(--text-sub);
   font-size: var(--fs-sm);
 }
 .node-actions .el-icon:hover {
   color: var(--primary);
 }
-.tree-node-content:hover .node-actions {
+.tree-node-content:hover .node-actions,
+.tree-node:hover .node-actions {
   display: inline-flex;
 }
 .tree-empty {

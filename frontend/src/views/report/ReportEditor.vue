@@ -404,6 +404,10 @@ onMounted(async () => {
     } catch (e: any) {
       ElMessage.error(e.message || '加载报表失败')
     }
+  } else {
+    // 从目录树的「+」进入时预选文件夹
+    const presetFolder = Number(route.query.folderId)
+    if (presetFolder) form.folderId = presetFolder
   }
   // 先加载关键字（不依赖数据源），再按已选数据源补齐库 / 表 / UDF
   await refreshSqlHints()

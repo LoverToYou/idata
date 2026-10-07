@@ -9,14 +9,6 @@
                   {{ currentFolderLabel }}
                 </el-tag>
               </span>
-              <div class="header-actions">
-                <el-button @click="handleCreateFolder">
-                  <el-icon><FolderAdd /></el-icon> 新建文件夹
-                </el-button>
-                <el-button type="primary" @click="router.push('/report/create')">
-                  <el-icon><Plus /></el-icon> 新建报表
-                </el-button>
-              </div>
             </div>
           </template>
 
@@ -24,11 +16,13 @@
             <div class="side-pane">
               <FolderTree
                 title="报表目录"
+                item-label="报表"
                 biz-type="REPORT"
                 v-model="selectedFolder"
                 :folders="folders"
                 :items="reports"
                 @changed="loadAll"
+                @create-item="onCreateItem"
               />
             </div>
             <div class="list-pane" ref="listPaneEl">
@@ -92,13 +86,11 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useWindowSize } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, FolderAdd } from '@element-plus/icons-vue'
 import Layout from '@/components/common/Layout.vue'
 import FolderTree from '@/components/common/FolderTree.vue'
 import { deleteReport, listReports, moveReport, type ReportItem } from '@/api/report'
 import {
   buildFolderTree,
-  createFolder,
   descendantFolderIds,
   listFolders,
   type FolderItem,
@@ -175,19 +167,14 @@ async function loadAll() {
   }
 }
 
-async function handleCreateFolder() {
-  try {
-    const { value } = await ElMessageBox.prompt('文件夹名称', '新建报表文件夹', {
-      inputPlaceholder: '请输入文件夹名称',
-      inputValidator: (v: string) => (v && v.trim() ? true : '名称不能为空'),
-    })
-    await createFolder({ name: value.trim(), parentId: null, bizType: 'REPORT' })
-    ElMessage.success('文件夹已创建')
-    await loadAll()
-  } catch {
-    /* cancelled */
-  }
+/** 目录树上的「+」：在指定目录（null = 未分组）下新建报表 */
+function onCreateItem(folderId: number | null) {
+  router.push({
+    path: '/report/create',
+    query: folderId ? { folderId: String(folderId) } : {},
+  })
 }
+
 
 function openMove(row: ReportItem) {
   moveTarget.value = row

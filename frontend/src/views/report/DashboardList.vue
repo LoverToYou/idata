@@ -24,11 +24,13 @@
             <div class="side-pane">
               <FolderTree
                 title="看板目录"
+                item-label="看板"
                 biz-type="DASHBOARD"
                 v-model="selectedFolder"
                 :folders="folders"
                 :items="dashboards"
                 @changed="loadAll"
+                @create-item="onCreateItem"
               />
             </div>
             <div class="list-pane" ref="listPaneEl">
@@ -187,6 +189,14 @@ async function handleCreateFolder() {
   } catch {
     /* cancelled */
   }
+}
+
+/** 目录树上的「+」：在指定目录（null = 未分组）下新建看板 */
+function onCreateItem(folderId: number | null) {
+  router.push({
+    path: '/dashboards/create',
+    query: folderId ? { folderId: String(folderId) } : {},
+  })
 }
 
 function openMove(row: DashboardInfo) {
