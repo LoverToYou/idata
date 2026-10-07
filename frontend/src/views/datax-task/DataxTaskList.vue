@@ -330,7 +330,7 @@ onMounted(async () => {
   align-items: center;
 }
 .conn-info {
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 .no-config {
   color: var(--text-faint);
@@ -343,7 +343,7 @@ onMounted(async () => {
   border-radius: 4px;
   overflow: auto;
   max-height: 60vh;
-  font-size: 13px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-all;

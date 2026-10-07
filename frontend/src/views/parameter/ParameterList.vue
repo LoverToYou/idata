@@ -713,17 +713,17 @@ onMounted(loadParameters)
   background: var(--bg-muted);
   padding: 2px 6px;
   border-radius: 3px;
-  font-size: 13px;
+  font-size: var(--fs-base);
   color: var(--primary);
 }
 
 .param-value {
   color: var(--text-body);
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 
 .form-hint {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   margin-top: 4px;
 }
@@ -744,7 +744,7 @@ onMounted(loadParameters)
 }
 
 .result-box__label {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-sub);
   margin-bottom: 4px;
 }
@@ -764,7 +764,7 @@ onMounted(loadParameters)
 }
 
 .table-result-box__value {
-  font-size: 13px;
+  font-size: var(--fs-base);
   color: var(--text-title);
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
   font-weight: 500;
@@ -775,7 +775,7 @@ onMounted(loadParameters)
 }
 
 .preview-label {
-  font-size: 13px;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--text-body);
   margin-bottom: 6px;
@@ -786,7 +786,7 @@ onMounted(loadParameters)
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 12px;
-  font-size: 13px;
+  font-size: var(--fs-base);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
@@ -809,14 +809,14 @@ onMounted(loadParameters)
 }
 
 .quick-exprs__label {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-faint);
   flex-shrink: 0;
 }
 
 .quick-expr-tag {
   cursor: pointer !important;
-  font-size: 11px !important;
+  font-size: var(--fs-xs) !important;
 }
 
 .quick-expr-tag:hover {
@@ -835,12 +835,12 @@ onMounted(loadParameters)
 
 .sql-textarea {
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important;
-  font-size: 13px !important;
+  font-size: var(--fs-base) !important;
 }
 
 .sql-textarea :deep(.el-textarea__inner) {
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 
 .sql-exec-bar {
@@ -862,12 +862,12 @@ onMounted(loadParameters)
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
 }
 
 .sql-test-result .result-elapsed {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
 }
 
@@ -877,7 +877,7 @@ onMounted(loadParameters)
 }
 
 .sql-test-ok {
-  font-size: 13px;
+  font-size: var(--fs-base);
   color: var(--success);
   padding: 8px 0;
 }

@@ -479,7 +479,7 @@ onMounted(() => {
   width: 100%;
 }
 .jar-info {
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 .muted {
   color: var(--text-sub);
@@ -495,7 +495,7 @@ onMounted(() => {
 .empty-tip {
   text-align: center;
   color: var(--text-sub);
-  font-size: 13px;
+  font-size: var(--fs-base);
   padding: 24px 0;
 }
 .link {
@@ -508,7 +508,7 @@ onMounted(() => {
   color: #d4d4d4;
   border-radius: 4px;
   padding: 10px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-all;

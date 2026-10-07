@@ -486,7 +486,7 @@ onBeforeUnmount(() => {
   gap: 6px;
 }
 .filter-label {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: #8fb8e8;
   white-space: nowrap;
 }
@@ -496,7 +496,7 @@ onBeforeUnmount(() => {
   gap: 6px;
 }
 .meta-text {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: #8fb8e8;
   white-space: nowrap;
 }
@@ -527,7 +527,7 @@ onBeforeUnmount(() => {
   gap: 8px;
   height: 32px;
   padding: 0 10px;
-  font-size: 13px;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: #cfe6ff;
   border-bottom: 1px solid rgba(90, 160, 255, 0.18);
@@ -546,7 +546,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .card-alert {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   padding: 1px 6px;
   border-radius: 3px;
   white-space: nowrap;
@@ -572,7 +572,7 @@ onBeforeUnmount(() => {
   }
 }
 .drill-tip {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: #6f8fb3;
   white-space: nowrap;
   opacity: 0;
@@ -592,7 +592,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   color: #ff9c9c;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   padding: 8px;
   text-align: center;
 }
@@ -600,6 +600,6 @@ onBeforeUnmount(() => {
   text-align: center;
   color: #7c93ad;
   padding-top: 80px;
-  font-size: 14px;
+  font-size: var(--fs-title);
 }
 </style>

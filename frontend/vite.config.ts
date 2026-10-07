@@ -17,10 +17,12 @@ export default defineConfig({
   plugins: [
     vue(),
     AutoImport({
-      resolvers: [ElementPlusResolver()],
+      // 样式统一由 main.ts 引入的 element-plus/dist/index.css 提供，
+      // 关闭按组件注入，避免重复 CSS 在 theme.css 之后加载而覆盖设计令牌
+      resolvers: [ElementPlusResolver({ importStyle: false })],
     }),
     Components({
-      resolvers: [ElementPlusResolver()],
+      resolvers: [ElementPlusResolver({ importStyle: false })],
     }),
     monacoPlugin({
       languageWorkers: ['json', 'editorWorkerService'],

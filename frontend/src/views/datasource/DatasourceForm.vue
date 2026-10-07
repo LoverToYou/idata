@@ -296,6 +296,6 @@ async function handleTest(engineOverride?: string) {
   padding: 1px 5px;
   border-radius: var(--radius-sm);
   color: var(--text-body);
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 </style>

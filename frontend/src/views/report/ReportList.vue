@@ -242,7 +242,7 @@ onMounted(async () => {
   gap: 8px;
 }
 .folder-hint {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   margin-left: 6px;
 }
@@ -250,7 +250,7 @@ onMounted(async () => {
   color: var(--text-sub);
 }
 .hint-block {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   margin-top: 8px;
 }

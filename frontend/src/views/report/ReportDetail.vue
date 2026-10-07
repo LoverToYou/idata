@@ -201,17 +201,17 @@ onBeforeUnmount(stopAutoRefresh)
 }
 .report-desc {
   color: var(--text-body);
-  font-size: 13px;
+  font-size: var(--fs-base);
   margin-bottom: 8px;
 }
 .meta-line {
   color: var(--text-sub);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   margin-bottom: 12px;
 }
 .sql-pre {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;

@@ -820,7 +820,7 @@ onBeforeUnmount(() => {
   max-height: 140px;
   overflow-y: auto;
 }
-.col-tag { font-size: 12px; }
+.col-tag { font-size: var(--fs-sm); }
 .col-type { color: var(--text-sub); }
 .script-editor-card { flex-shrink: 0; }
 .monaco-container {
@@ -836,7 +836,7 @@ onBeforeUnmount(() => {
   border-radius: 4px;
   overflow: auto;
   max-height: 400px;
-  font-size: 13px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-all;

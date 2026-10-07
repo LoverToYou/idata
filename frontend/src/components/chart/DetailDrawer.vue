@@ -53,7 +53,7 @@ function handleExport() {
   justify-content: space-between;
 }
 .drawer-meta {
-  font-size: 13px;
+  font-size: var(--fs-base);
   color: var(--text-body);
 }
 </style>

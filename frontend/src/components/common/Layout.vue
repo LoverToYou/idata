@@ -369,7 +369,7 @@ function autoFillSingleCard() {
 .side-menu .el-menu-item {
   height: 36px;
   line-height: 36px;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-nav);
   color: var(--text-body);
   border-radius: var(--radius);
   margin-bottom: 1px;
@@ -389,7 +389,7 @@ function autoFillSingleCard() {
 .side-menu :deep(.el-sub-menu__title) {
   height: 38px;
   line-height: 38px;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-nav);
   color: var(--text-sub);
   border-radius: var(--radius);
   /* 分组固定全展开，不再提供折叠交互 */
@@ -417,7 +417,7 @@ function autoFillSingleCard() {
   height: 28px;
   line-height: 28px;
   margin-bottom: 0;
-  font-size: var(--fs-xs);
+  font-size: var(--fs-nav-sub);
 }
 
 .side-menu :deep(.el-sub-menu.is-active .el-sub-menu__title) {

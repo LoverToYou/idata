@@ -569,7 +569,7 @@ onUnmounted(() => {
 }
 
 .stat-label {
-  font-size: 13px;
+  font-size: var(--fs-base);
   color: var(--text-sub);
 }
 
@@ -633,7 +633,7 @@ onUnmounted(() => {
 
 .log-node-name {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-title);
   color: var(--text-title);
 }
 
@@ -648,12 +648,12 @@ onUnmounted(() => {
 }
 
 .node-id-code {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
 }
 
 .log-path {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   word-break: break-all;
 }
 
@@ -695,7 +695,7 @@ onUnmounted(() => {
 }
 
 .log-collapse-label {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-body);
 }
@@ -707,7 +707,7 @@ onUnmounted(() => {
   background: #1e1e1e;
   border-radius: 4px;
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 1.5;
   color: #d4d4d4;
   white-space: pre-wrap;
@@ -724,7 +724,7 @@ onUnmounted(() => {
   border: 1px solid #faecd8;
   border-radius: 4px;
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 1.5;
   color: var(--text-body);
   white-space: pre-wrap;
@@ -738,7 +738,7 @@ onUnmounted(() => {
 }
 
 .log-error-label {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--danger);
   margin-bottom: 4px;
@@ -751,7 +751,7 @@ onUnmounted(() => {
   border: 1px solid #fde2e2;
   border-radius: 4px;
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 1.6;
   color: var(--danger);
   white-space: pre-wrap;

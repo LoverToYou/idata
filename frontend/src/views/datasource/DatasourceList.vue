@@ -189,7 +189,7 @@ async function handleBatchDelete() {
 }
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-body);
 }
 </style>

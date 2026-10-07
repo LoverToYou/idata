@@ -139,7 +139,7 @@ async function removeFolderNode(node: { id: number; name: string }) {
 <style scoped>
 .folder-tree {
   width: 100%;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .tree-header {
   display: flex;
@@ -148,13 +148,13 @@ async function removeFolderNode(node: { id: number; name: string }) {
   margin-bottom: 6px;
 }
 .tree-title {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-sub);
   letter-spacing: 0.5px;
 }
 .tree-tip {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-faint);
 }
 .tree-node {
@@ -165,7 +165,7 @@ async function removeFolderNode(node: { id: number; name: string }) {
   padding: 0 6px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-title);
 }
 .tree-node:hover {
@@ -181,7 +181,7 @@ async function removeFolderNode(node: { id: number; name: string }) {
   gap: 5px;
   width: 100%;
   padding-right: 4px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .node-label {
   flex: 1;
@@ -190,7 +190,7 @@ async function removeFolderNode(node: { id: number; name: string }) {
   white-space: nowrap;
 }
 .node-count {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-faint);
 }
 .node-actions {
@@ -198,7 +198,7 @@ async function removeFolderNode(node: { id: number; name: string }) {
   align-items: center;
   gap: 5px;
   color: var(--text-sub);
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .node-actions .el-icon:hover {
   color: var(--primary);
@@ -207,7 +207,7 @@ async function removeFolderNode(node: { id: number; name: string }) {
   display: inline-flex;
 }
 .tree-empty {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-faint);
   padding: 6px 4px;
 }
@@ -215,6 +215,6 @@ async function removeFolderNode(node: { id: number; name: string }) {
   height: 28px;
 }
 :deep(.el-tree-node__label) {
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 </style>

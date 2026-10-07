@@ -428,12 +428,12 @@ onBeforeUnmount(() => {
   margin-bottom: 12px;
 }
 .hint-inline {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   margin-left: 8px;
 }
 .hint-block {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   line-height: 1.6;
   width: 100%;

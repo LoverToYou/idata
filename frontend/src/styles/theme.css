@@ -33,11 +33,15 @@
   --radius-lg: 8px;
   --gap: 12px;
 
-  /* 字号 */
-  --fs-xs: 11px;
-  --fs-sm: 12px;
-  --fs-base: 13px;
-  --fs-title: 14px;
+  /* 字号（内容区基准） */
+  --fs-xs: 10px;
+  --fs-sm: 11px;
+  --fs-base: 12px;
+  --fs-title: 13px;
+
+  /* 左侧导航字号（单独调过，不随内容区变化） */
+  --fs-nav: 12px;
+  --fs-nav-sub: 11px;
 
   --nav-h: 48px;
 

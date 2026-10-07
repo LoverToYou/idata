@@ -366,7 +366,7 @@
                 <el-table-column prop="extra" label="额外信息" min-width="200" />
               </el-table>
               <el-alert v-if="planResult.rawPlan && !planResult.plan?.length" type="info" show-icon title="执行计划">
-                <pre style="white-space: pre-wrap; margin: 0; font-size: 12px; line-height: 1.6;">{{ planResult.rawPlan }}</pre>
+                <pre style="white-space: pre-wrap; margin: 0; font-size: var(--fs-sm); line-height: 1.6;">{{ planResult.rawPlan }}</pre>
               </el-alert>
             </div>
             <el-empty v-else description="点击「执行计划」查看" />
@@ -1594,7 +1594,7 @@ async function handleUnpublish() {
 }
 
 .result-meta {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   margin-bottom: 8px;
   padding: 4px 0;
@@ -1639,13 +1639,13 @@ async function handleUnpublish() {
 .suggestion-detail {
   margin: 4px 0;
   color: var(--text-body);
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 
 .suggestion-advice {
   margin: 4px 0;
   color: var(--primary);
-  font-size: 13px;
+  font-size: var(--fs-base);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1705,16 +1705,16 @@ async function handleUnpublish() {
   gap: 8px;
 }
 .pinned-label {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--warning);
   font-weight: 600;
 }
 .stmt-elapsed {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-faint);
 }
 .stmt-rows {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
 }
 
@@ -1734,7 +1734,7 @@ async function handleUnpublish() {
   padding: 4px 10px;
   border: 1px solid var(--border);
   border-radius: 4px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   cursor: pointer;
   color: var(--text-body);
   background: #fff;
@@ -1745,7 +1745,7 @@ async function handleUnpublish() {
   background: #fdf6ec;
 }
 .switch-tab__pin {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-faint);
   cursor: pointer;
   padding: 0 2px;
@@ -1781,7 +1781,7 @@ async function handleUnpublish() {
 .dot-error { background: var(--danger); }
 .switch-tab__meta {
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   margin-left: 2px;
 }
 .stmt-sql {
@@ -1802,13 +1802,13 @@ async function handleUnpublish() {
   border-radius: 50%;
   background: var(--primary);
   color: #fff;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   margin-top: 1px;
 }
 .stmt-sql__text {
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-title);
   line-height: 1.5;
   white-space: pre-wrap;
@@ -1817,7 +1817,7 @@ async function handleUnpublish() {
 .stmt-sql__resolved {
   display: block;
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--success);
   line-height: 1.5;
   white-space: pre-wrap;
@@ -1838,7 +1838,7 @@ async function handleUnpublish() {
 /* Execution log */
 .exec-log {
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 1.7;
 }
 .log-line {

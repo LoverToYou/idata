@@ -456,7 +456,7 @@ onBeforeUnmount(() => {
 }
 .muted {
   color: var(--text-sub);
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .monaco-container {
   width: 100%;
@@ -474,7 +474,7 @@ onBeforeUnmount(() => {
   margin-bottom: 12px;
 }
 .detail-label {
-  font-size: 13px;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--text-title);
   margin-bottom: 6px;
@@ -486,7 +486,7 @@ onBeforeUnmount(() => {
   padding: 12px;
   max-height: 260px;
   overflow: auto;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-all;

@@ -480,7 +480,7 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 .grid-toolbar {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   margin-bottom: 8px;
 }
@@ -518,7 +518,7 @@ onBeforeUnmount(() => {
   padding: 0 6px;
   background: var(--bg-muted);
   border-bottom: 1px solid var(--border-light);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-title);
 }
 .drag-handle {
@@ -534,7 +534,7 @@ onBeforeUnmount(() => {
 }
 .item-alert {
   color: var(--warning);
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 .grid-item-body {
   height: calc(100% - 30px);
@@ -549,7 +549,7 @@ onBeforeUnmount(() => {
   height: 16px;
   cursor: nwse-resize;
   color: var(--text-sub);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   text-align: center;
   line-height: 16px;
   background: rgba(64, 158, 255, 0.12);
@@ -561,7 +561,7 @@ onBeforeUnmount(() => {
   top: 40px;
   text-align: center;
   color: var(--text-sub);
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 .report-lib {
   max-height: 640px;
@@ -580,10 +580,10 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 .hint-inline {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
 }
 .filter-panel {

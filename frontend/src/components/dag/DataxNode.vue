@@ -69,7 +69,7 @@ withDefaults(defineProps<Props>(), {
 }
 
 .node-label {
-  font-size: 13px;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: #333;
   white-space: nowrap;

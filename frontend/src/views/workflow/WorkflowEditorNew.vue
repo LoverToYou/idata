@@ -689,11 +689,11 @@ async function handleRun() {
 
 .desc-input {
   flex: 1;
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 
 .unsaved-badge {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--warning);
   background: #fdf6ec;
   border: 1px solid #faecd8;
@@ -729,14 +729,14 @@ async function handleRun() {
 }
 
 .panel-title {
-  font-size: 14px;
+  font-size: var(--fs-title);
   font-weight: 600;
   color: var(--text-title);
   margin: 0;
 }
 
 .panel-hint {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   margin: 0;
 }
@@ -749,7 +749,7 @@ async function handleRun() {
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: grab;
-  font-size: 13px;
+  font-size: var(--fs-base);
   font-weight: 500;
   transition: all 0.2s;
   user-select: none;
@@ -825,7 +825,7 @@ async function handleRun() {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 8px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-family: 'Menlo', 'Monaco', monospace;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -841,7 +841,7 @@ async function handleRun() {
 }
 
 .property-panel :deep(.el-form-item__label) {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   padding-bottom: 2px;
 }
 
@@ -851,7 +851,7 @@ async function handleRun() {
 
 .config-value {
   color: var(--text-body);
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 
 

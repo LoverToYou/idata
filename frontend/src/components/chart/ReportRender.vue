@@ -73,7 +73,7 @@ function formatCell(v: any) {
 .mini-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .mini-table th,
 .mini-table td {
@@ -94,7 +94,7 @@ function formatCell(v: any) {
   align-items: center;
   justify-content: center;
   color: var(--text-sub);
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 /* 大屏深色风格 */.report-render.dark .mini-table th,
 .report-render.dark .mini-table td {

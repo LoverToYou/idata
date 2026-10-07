@@ -256,7 +256,7 @@ onMounted(loadData)
   align-items: center;
 }
 .cron-hint {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   line-height: 1.6;
 }
@@ -276,7 +276,7 @@ onMounted(loadData)
   width: 100%;
 }
 .retry-hint {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-sub);
   line-height: 1.6;
 }
