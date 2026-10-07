@@ -82,16 +82,22 @@ export function buildChartOption(
     }
   }
 
-  const categories = data.map((r) => String(r[xField] ?? ''))
+  // 有分组字段时，分类轴取 X 的唯一值，各系列按 X 对齐；否则每行一个分类
+  const categories = seriesField
+    ? Array.from(new Set(data.map((r) => String(r[xField] ?? ''))))
+    : data.map((r) => String(r[xField] ?? ''))
   let series: any[]
   const smooth = typeof config.smooth === 'number' ? config.smooth : type !== 'BAR'
 
   if (seriesField) {
+    const catIndex = new Map<string, number>()
+    categories.forEach((c, i) => catIndex.set(c, i))
     const groups = new Map<string, any[]>()
-    data.forEach((r, idx) => {
+    data.forEach((r) => {
       const g = String(r[seriesField] ?? '')
-      if (!groups.has(g)) groups.set(g, new Array(data.length).fill(null))
-      groups.get(g)![idx] = Number(r[yFields[0]] ?? 0)
+      if (!groups.has(g)) groups.set(g, new Array(categories.length).fill(null))
+      const i = catIndex.get(String(r[xField] ?? ''))
+      if (i !== undefined) groups.get(g)![i] = Number(r[yFields[0]] ?? 0)
     })
     series = Array.from(groups.entries()).map(([name, values]) => ({
       name,
