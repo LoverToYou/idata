@@ -255,7 +255,7 @@ function autoFillSingleCard() {
 }
 
 .toggle-icon {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-sub);
   cursor: pointer;
 }
@@ -422,6 +422,12 @@ function autoFillSingleCard() {
 
 .side-menu :deep(.el-sub-menu.is-active .el-sub-menu__title) {
   color: var(--text-title);
+}
+
+/* 菜单图标按文字比例缩小（Element Plus 默认写死 18px，相对 12px 文字偏大） */
+.side-menu :deep(.el-menu-item [class^='el-icon']),
+.side-menu :deep(.el-sub-menu .el-icon) {
+  font-size: 14px;
 }
 
 /* ================= 右侧功能区 ================= */

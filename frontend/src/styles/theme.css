@@ -115,6 +115,52 @@ body {
   font-weight: 400;
 }
 
+/* ---------- 组件字号对齐 ----------
+   Element Plus 把部分组件（select / pagination / date-editor / alert 等）
+   的字号写死为 14px，不读 --el-font-size-base，会与已跟随令牌的输入框、
+   表格产生视觉不一致，这里统一纠正到设计令牌 */
+.el-select,
+.el-select__wrapper,
+.el-select__input,
+.el-select__placeholder,
+.el-select__selected-item,
+.el-select__suffix,
+.el-select__caret,
+.el-select-dropdown__item,
+.el-date-editor,
+.el-range-separator,
+.el-alert,
+.el-breadcrumb,
+.el-checkbox,
+.el-collapse,
+.el-descriptions,
+.el-drawer,
+.el-dropdown-menu__item,
+.el-empty__description,
+.el-form,
+.el-form-item,
+.el-form-item__label,
+.el-input-number,
+.el-link,
+.el-radio,
+.el-tabs__item,
+.el-timeline,
+.el-transfer,
+.el-tree,
+.el-pagination {
+  font-size: var(--fs-base);
+}
+
+.el-pagination {
+  --el-pagination-font-size: var(--fs-base);
+}
+
+.el-input__icon,
+.el-date-editor .el-range-separator,
+.el-date-editor .el-range-input {
+  font-size: var(--fs-base);
+}
+
 /* ---------- 表格：细线、紧凑、无斑马条 ---------- */
 .el-table {
   font-size: var(--fs-base);
