@@ -404,16 +404,19 @@ function autoFillSingleCard() {
 
 .side-menu :deep(.el-sub-menu .el-menu) {
   background: transparent;
-  margin-left: 17px;
+  margin-left: 20px;
+  margin-top: -3px;
+  margin-bottom: -4px;
   padding-left: 0;
   border-left: 1px solid var(--border-light);
 }
 
 .side-menu :deep(.el-sub-menu .el-menu-item) {
   min-width: 0;
-  padding-left: 13px !important;
-  height: 34px;
-  line-height: 34px;
+  padding-left: 34px !important;
+  height: 28px;
+  line-height: 28px;
+  margin-bottom: 0;
   font-size: var(--fs-xs);
 }
 
