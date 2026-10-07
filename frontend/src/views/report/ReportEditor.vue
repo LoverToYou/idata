@@ -68,6 +68,13 @@
                   <el-option v-for="c in columns" :key="c" :label="c" :value="c" />
                 </el-select>
                 <el-input-number v-model="config.limit" :min="0" :max="5000" size="small" controls-position="right" style="width: 100%" placeholder="显示条数上限(0=全部)" />
+                <div v-if="isValueAxisChart" class="y-axis-range">
+                  <el-input-number v-model="config.yMin" :controls="false" size="small" placeholder="Y轴最小" style="width: 100%" />
+                  <el-input-number v-model="config.yMax" :controls="false" size="small" placeholder="Y轴最大" style="width: 100%" />
+                </div>
+                <div v-if="isValueAxisChart" class="hint-inline">
+                  设置「Y 轴最小」即截断坐标轴（不从 0 开始），留空为自动。
+                </div>
               </div>
             </el-form-item>
             <div class="preview-actions">
@@ -157,10 +164,12 @@ const form = reactive({
   folderId: null as number | null,
 })
 
-const config = reactive<ChartConfig>({ xField: undefined, yFields: [], seriesField: undefined, limit: 0 })
+const config = reactive<ChartConfig>({ xField: undefined, yFields: [], seriesField: undefined, limit: 0, yMin: null, yMax: null })
 
 const columns = computed(() => result.value?.columns || [])
 const isTableType = computed(() => (form.chartType || 'TABLE').toUpperCase() === 'TABLE')
+/** 柱状图/折线图才有数值 Y 轴，饼图没有 */
+const isValueAxisChart = computed(() => ['LINE', 'BAR'].includes((form.chartType || '').toUpperCase()))
 const chartOption = computed(() =>
   result.value ? buildChartOption(form.chartType, result.value.columns, result.value.rows, config) : null,
 )
@@ -421,6 +430,11 @@ onBeforeUnmount(() => {
 .field-mapping {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.y-axis-range {
+  display: flex;
   gap: 8px;
   width: 100%;
 }

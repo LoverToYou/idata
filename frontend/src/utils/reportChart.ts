@@ -1,6 +1,6 @@
 /**
  * 报表图表配置与 ECharts option 构建。
- * chartConfig 结构：{ xField, yFields: string[], seriesField?, limit? }
+ * chartConfig 结构：{ xField, yFields: string[], seriesField?, limit?, yMin?, yMax? }
  */
 
 export interface ChartConfig {
@@ -8,6 +8,10 @@ export interface ChartConfig {
   yFields?: string[]
   seriesField?: string
   limit?: number
+  /** Y 轴最小值；填写即截断坐标轴（不从 0 开始） */
+  yMin?: number | null
+  /** Y 轴最大值 */
+  yMax?: number | null
 }
 
 export function parseChartConfig(raw?: string | null): ChartConfig {
@@ -112,7 +116,13 @@ export function buildChartOption(
       data: categories,
       axisLabel: { rotate: categories.length > 8 ? 30 : 0, hideOverlap: true },
     },
-    yAxis: { type: 'value' },
+    yAxis: {
+      type: 'value',
+      min: typeof config.yMin === 'number' ? config.yMin : undefined,
+      max: typeof config.yMax === 'number' ? config.yMax : undefined,
+      // 设了最小值即视为截断坐标轴，不再强制包含 0
+      scale: typeof config.yMin === 'number',
+    },
     dataZoom:
       categories.length > 30
         ? [{ type: 'inside' }, { type: 'slider', height: 16, bottom: 12 }]
