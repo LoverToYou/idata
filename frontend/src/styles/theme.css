@@ -161,6 +161,13 @@ body {
   font-size: var(--fs-base);
 }
 
+/* ---------- 标签（el-tag）：更紧凑 ---------- */
+.el-tag {
+  --el-tag-font-size: var(--fs-sm);
+  height: 18px;
+  padding: 0 6px;
+}
+
 /* ---------- 表格：细线、紧凑、无斑马条 ---------- */
 .el-table {
   font-size: var(--fs-base);

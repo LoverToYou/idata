@@ -1589,6 +1589,16 @@ async function handleUnpublish() {
 .result-tabs {
   height: 100%;
 }
+/* 标签页更紧凑 */
+.result-tabs :deep(.el-tabs__header) {
+  margin-bottom: 8px;
+}
+.result-tabs :deep(.el-tabs__item) {
+  height: 30px;
+  line-height: 30px;
+  padding: 0 14px;
+  font-size: var(--fs-sm);
+}
 .result-tabs :deep(.el-tabs__content) {
   overflow-y: auto;
 }
