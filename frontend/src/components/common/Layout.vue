@@ -7,6 +7,15 @@
         <nav class="top-nav">
           <div class="top-item" :class="{ active: isHome }" @click="go('/dashboard')">工作台</div>
           <div
+            v-for="item in MENU_TOP_ITEMS"
+            :key="item.path"
+            class="top-item"
+            :class="{ active: isChildActive(item.path) }"
+            @click="go(item.path)"
+          >
+            {{ item.title }}
+          </div>
+          <div
             v-for="group in MENU_GROUPS"
             :key="group.key"
             class="top-item"
@@ -67,6 +76,11 @@
             <span>工作台</span>
           </el-menu-item>
 
+          <el-menu-item v-for="item in MENU_TOP_ITEMS" :key="item.path" :index="item.path">
+            <el-icon><component :is="item.icon" /></el-icon>
+            <span>{{ item.title }}</span>
+          </el-menu-item>
+
           <el-sub-menu v-for="group in MENU_GROUPS" :key="group.key" :index="group.key">
             <template #title>
               <el-icon><component :is="group.icon" /></el-icon>
@@ -104,7 +118,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { Expand, Fold, Odometer } from '@element-plus/icons-vue'
-import { MENU_GROUPS, groupKeyOfPath } from '@/config/menu'
+import { MENU_GROUPS, MENU_TOP_ITEMS, groupKeyOfPath } from '@/config/menu'
 
 const route = useRoute()
 const router = useRouter()
@@ -115,7 +129,9 @@ const activeGroupKey = computed(() => groupKeyOfPath(route.path))
 const activeGroup = computed(() => MENU_GROUPS.find((g) => g.key === activeGroupKey.value))
 const groupTitle = computed(() => activeGroup.value?.title || '')
 const isHome = computed(() => route.path === '/dashboard')
-const totalFeatures = computed(() => MENU_GROUPS.reduce((n, g) => n + g.children.length, 0))
+const totalFeatures = computed(
+  () => MENU_GROUPS.reduce((n, g) => n + g.children.length, 0) + MENU_TOP_ITEMS.length,
+)
 
 // ---- 导航位置（顶部 / 左侧），VueUse 持久化 ----
 const layoutMode = useLocalStorage<'side' | 'top'>('idata.layoutMode', 'side')

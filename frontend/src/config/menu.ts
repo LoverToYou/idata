@@ -1,5 +1,4 @@
 import {
-  Box,
   Coin,
   Connection,
   Cpu,
@@ -38,18 +37,15 @@ export interface MenuGroup {
  * IDATA 功能框架（菜单与工作台共用）：
  * 工作台 → 数据集成 / 任务开发 / 调度运维 / 数据应用 / 数据安全
  */
+/**
+ * IDATA 功能框架（菜单与工作台共用）：
+ * 独立菜单（不归属能力域）→ 能力域：任务开发 / 调度运维 / 文件存储 / 数据应用 / 数据安全
+ */
+export const MENU_TOP_ITEMS: MenuChild[] = [
+  { path: '/datasource', title: '数据源管理', icon: Connection, desc: '接入 MySQL / Hive 等数据源' },
+]
+
 export const MENU_GROUPS: MenuGroup[] = [
-  {
-    key: 'integration',
-    title: '数据集成',
-    icon: Box,
-    desc: '接入数据源、文件与 ETL 同步任务',
-    children: [
-      { path: '/datasource', title: '数据源管理', icon: Connection, desc: '接入 MySQL / Hive 等数据源' },
-      { path: '/datax-task', title: 'ETL 任务管理', icon: Share, desc: 'DataX 数据同步任务' },
-      { path: '/files', title: '文件管理', icon: FolderOpened, desc: 'HDFS 文件与资源上传' },
-    ],
-  },
   {
     key: 'development',
     title: '任务开发',
@@ -70,7 +66,17 @@ export const MENU_GROUPS: MenuGroup[] = [
     children: [
       { path: '/workflow', title: '工作流管理', icon: List, desc: 'DAG 工作流编排' },
       { path: '/schedule', title: '定时调度', icon: Timer, desc: 'Cron 调度与失败重试' },
+      { path: '/datax-task', title: 'ETL 任务管理', icon: Share, desc: 'DataX 数据同步任务' },
       { path: '/monitor', title: '任务监控', icon: Monitor, desc: '实例与节点执行日志' },
+    ],
+  },
+  {
+    key: 'storage',
+    title: '文件存储',
+    icon: FolderOpened,
+    desc: 'HDFS 文件与资源管理',
+    children: [
+      { path: '/files', title: '文件管理', icon: FolderOpened, desc: 'HDFS 文件与资源上传' },
     ],
   },
   {

@@ -30,6 +30,22 @@
             <span class="panel-sub">{{ MENU_GROUPS.length }} 个能力域 · {{ totalFeatures }} 个功能</span>
           </div>
           <div class="nav-groups">
+            <div v-if="MENU_TOP_ITEMS.length" class="nav-group">
+              <div class="nav-group-head">
+                <span class="nav-group-title">独立入口</span>
+                <span class="nav-group-desc">不归属能力域的菜单</span>
+              </div>
+              <div class="nav-links">
+                <span
+                  v-for="item in MENU_TOP_ITEMS"
+                  :key="item.path"
+                  class="nav-link"
+                  @click="router.push(item.path)"
+                >
+                  {{ item.title }}
+                </span>
+              </div>
+            </div>
             <div v-for="g in MENU_GROUPS" :key="g.key" class="nav-group">
               <div class="nav-group-head">
                 <span class="nav-group-title">{{ g.title }}</span>
@@ -112,7 +128,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Layout from '@/components/common/Layout.vue'
-import { MENU_GROUPS, QUICK_ACTIONS } from '@/config/menu'
+import { MENU_GROUPS, MENU_TOP_ITEMS, QUICK_ACTIONS } from '@/config/menu'
 import { listDatasources } from '@/api/datasource'
 import { listTasks } from '@/api/sql-task'
 import { listDataxTasks } from '@/api/datax-task'
@@ -144,7 +160,9 @@ const counts = reactive({
   file: 0,
 })
 
-const totalFeatures = computed(() => MENU_GROUPS.reduce((n, g) => n + g.children.length, 0))
+const totalFeatures = computed(
+  () => MENU_GROUPS.reduce((n, g) => n + g.children.length, 0) + MENU_TOP_ITEMS.length,
+)
 
 const statCards = computed(() => [
   { label: '数据源', value: counts.datasource, path: '/datasource' },
