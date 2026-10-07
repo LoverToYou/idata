@@ -129,6 +129,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import * as monaco from 'monaco-editor'
+import { ensureSqlHighlight } from '@/utils/sql-highlight'
 import Layout from '@/components/common/Layout.vue'
 import EChart from '@/components/chart/EChart.vue'
 import { listDatasources, listDatasourceDatabases, listDatasourceTables } from '@/api/datasource'
@@ -188,6 +189,7 @@ const chartOption = computed(() =>
 
 function initEditor() {
   if (!sqlContainer.value) return
+  ensureSqlHighlight()
   const ed = monaco.editor.create(sqlContainer.value, {
     value: form.sqlContent,
     language: 'sql',

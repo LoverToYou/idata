@@ -478,6 +478,7 @@ import { listUdfsByDatasource, registerUdf } from '@/api/udf'
 import { registerSqlCompletion } from '@/utils/sqlCompletion'
 import { resolveParams } from '@/api/parameter'
 import * as monaco from 'monaco-editor'
+import { ensureSqlHighlight } from '@/utils/sql-highlight'
 import { format as formatSql } from 'sql-formatter'
 
 interface ExecutedStatement {
@@ -1118,6 +1119,7 @@ function ensureEditor() {
       colors: { 'editor.background': '#fafbfc' },
     })
     try {
+      ensureSqlHighlight()
       editor = monaco.editor.create(monacoContainer.value, {
       value: '',
       language: 'sql',

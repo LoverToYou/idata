@@ -34,6 +34,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      // monaco 内置 SQL 词法定义（用于补充 Hive 关键字）
+      'monaco-sql-builtin': resolve(
+        __dirname,
+        'node_modules/monaco-editor/esm/vs/basic-languages/sql/sql.js',
+      ),
       'monaco-editor': resolve(__dirname, 'node_modules/monaco-editor/esm/vs/editor/editor.main.js'),
     },
   },
