@@ -1123,7 +1123,7 @@ function ensureEditor() {
       language: 'sql',
       theme: 'idata',
       minimap: { enabled: false },
-      fontSize: 14,
+      fontSize: 12,
       lineNumbers: 'on',
       automaticLayout: true,
       scrollBeyondLastLine: false,

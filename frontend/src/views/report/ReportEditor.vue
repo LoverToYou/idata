@@ -192,7 +192,7 @@ function initEditor() {
     value: form.sqlContent,
     language: 'sql',
     theme: 'vs',
-    fontSize: 13,
+    fontSize: 12,
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     automaticLayout: true,

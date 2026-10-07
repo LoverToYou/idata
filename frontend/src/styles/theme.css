@@ -213,6 +213,22 @@ body {
   border-radius: var(--radius);
 }
 
+/* ---------- 按钮：整体更紧凑 ---------- */
+.el-button:not(.is-circle):not(.is-link):not(.is-text) {
+  height: 28px;
+  padding: 0 12px;
+}
+
+.el-button--small:not(.is-circle):not(.is-link):not(.is-text) {
+  height: 22px;
+  padding: 0 9px;
+}
+
+.el-button.is-circle {
+  width: 28px;
+  height: 28px;
+}
+
 .el-button--primary {
   --el-button-bg-color: var(--primary);
   --el-button-border-color: var(--primary);
