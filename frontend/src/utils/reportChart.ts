@@ -1,6 +1,6 @@
 /**
  * 报表图表配置与 ECharts option 构建。
- * chartConfig 结构：{ xField, yFields: string[], seriesField?, limit?, yMin?, yMax? }
+ * chartConfig 结构：{ xField, yFields: string[], seriesField?, limit?, yMin?, yMax?, smooth? }
  */
 
 export interface ChartConfig {
@@ -12,6 +12,8 @@ export interface ChartConfig {
   yMin?: number | null
   /** Y 轴最大值 */
   yMax?: number | null
+  /** 折线曲线弧度 0~1（0 = 直线）；不填时折线默认平滑、柱状图默认直线 */
+  smooth?: number | null
 }
 
 export function parseChartConfig(raw?: string | null): ChartConfig {
@@ -82,6 +84,7 @@ export function buildChartOption(
 
   const categories = data.map((r) => String(r[xField] ?? ''))
   let series: any[]
+  const smooth = typeof config.smooth === 'number' ? config.smooth : type !== 'BAR'
 
   if (seriesField) {
     const groups = new Map<string, any[]>()
@@ -93,7 +96,7 @@ export function buildChartOption(
     series = Array.from(groups.entries()).map(([name, values]) => ({
       name,
       type: type === 'BAR' ? 'bar' : 'line',
-      smooth: type !== 'BAR',
+      smooth,
       barMaxWidth: 32,
       data: values,
     }))
@@ -101,7 +104,7 @@ export function buildChartOption(
     series = yFields.map((f) => ({
       name: f,
       type: type === 'BAR' ? 'bar' : 'line',
-      smooth: type !== 'BAR',
+      smooth,
       barMaxWidth: 32,
       data: data.map((r) => Number(r[f] ?? 0)),
     }))

@@ -75,6 +75,14 @@
                 <div v-if="isValueAxisChart" class="hint-inline">
                   设置「Y 轴最小」即截断坐标轴（不从 0 开始），留空为自动。
                 </div>
+                <div v-if="isLineChart" class="smooth-row">
+                  <span class="smooth-label">曲线弧度</span>
+                  <el-slider v-model="smoothValue" :min="0" :max="1" :step="0.1" class="smooth-slider" />
+                  <span class="smooth-value">{{ smoothValue.toFixed(1) }}</span>
+                </div>
+                <div v-if="isLineChart" class="hint-inline">
+                  0 = 直线，1 = 最弯；默认 0.5。
+                </div>
               </div>
             </el-form-item>
             <div class="preview-actions">
@@ -164,12 +172,19 @@ const form = reactive({
   folderId: null as number | null,
 })
 
-const config = reactive<ChartConfig>({ xField: undefined, yFields: [], seriesField: undefined, limit: 0, yMin: null, yMax: null })
+const config = reactive<ChartConfig>({ xField: undefined, yFields: [], seriesField: undefined, limit: 0, yMin: null, yMax: null, smooth: null })
 
 const columns = computed(() => result.value?.columns || [])
 const isTableType = computed(() => (form.chartType || 'TABLE').toUpperCase() === 'TABLE')
 /** 柱状图/折线图才有数值 Y 轴，饼图没有 */
 const isValueAxisChart = computed(() => ['LINE', 'BAR'].includes((form.chartType || '').toUpperCase()))
+/** 只有折线图可调曲线弧度 */
+const isLineChart = computed(() => (form.chartType || '').toUpperCase() === 'LINE')
+/** 曲线弧度：未配置时按默认平滑 0.5 展示 */
+const smoothValue = computed({
+  get: () => (typeof config.smooth === 'number' ? config.smooth : 0.5),
+  set: (v: number) => { config.smooth = v },
+})
 const chartOption = computed(() =>
   result.value ? buildChartOption(form.chartType, result.value.columns, result.value.rows, config) : null,
 )
@@ -437,6 +452,27 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
   width: 100%;
+}
+.smooth-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.smooth-label {
+  font-size: var(--fs-sm);
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+.smooth-slider {
+  flex: 1;
+  min-width: 0;
+}
+.smooth-value {
+  font-size: var(--fs-sm);
+  color: var(--text-sub);
+  width: 22px;
+  text-align: right;
 }
 .preview-actions {
   display: flex;
