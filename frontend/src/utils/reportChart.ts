@@ -1,12 +1,11 @@
 /**
  * 报表图表配置与 ECharts option 构建。
- * chartConfig 结构：{ xField, yFields: string[], seriesField?, limit?, yMin?, yMax?, smooth? }
+ * chartConfig 结构：{ xField, yFields: string[], limit?, yMin?, yMax?, smooth? }
  */
 
 export interface ChartConfig {
   xField?: string
   yFields?: string[]
-  seriesField?: string
   limit?: number
   /** Y 轴最小值；填写即截断坐标轴（不从 0 开始） */
   yMin?: number | null
@@ -60,8 +59,6 @@ export function buildChartOption(
       : nums.length > 0
         ? [nums[0]]
         : [columns[1] || columns[0]]
-  const seriesField = resolveField(columns, config.seriesField)
-
   if (type === 'PIE') {
     const valueField = yFields[0]
     return {
@@ -82,39 +79,16 @@ export function buildChartOption(
     }
   }
 
-  // 有分组字段时，分类轴取 X 的唯一值，各系列按 X 对齐；否则每行一个分类
-  const categories = seriesField
-    ? Array.from(new Set(data.map((r) => String(r[xField] ?? ''))))
-    : data.map((r) => String(r[xField] ?? ''))
-  let series: any[]
+  const categories = data.map((r) => String(r[xField] ?? ''))
   const smooth = typeof config.smooth === 'number' ? config.smooth : type !== 'BAR'
 
-  if (seriesField) {
-    const catIndex = new Map<string, number>()
-    categories.forEach((c, i) => catIndex.set(c, i))
-    const groups = new Map<string, any[]>()
-    data.forEach((r) => {
-      const g = String(r[seriesField] ?? '')
-      if (!groups.has(g)) groups.set(g, new Array(categories.length).fill(null))
-      const i = catIndex.get(String(r[xField] ?? ''))
-      if (i !== undefined) groups.get(g)![i] = Number(r[yFields[0]] ?? 0)
-    })
-    series = Array.from(groups.entries()).map(([name, values]) => ({
-      name,
-      type: type === 'BAR' ? 'bar' : 'line',
-      smooth,
-      barMaxWidth: 32,
-      data: values,
-    }))
-  } else {
-    series = yFields.map((f) => ({
-      name: f,
-      type: type === 'BAR' ? 'bar' : 'line',
-      smooth,
-      barMaxWidth: 32,
-      data: data.map((r) => Number(r[f] ?? 0)),
-    }))
-  }
+  const series = yFields.map((f) => ({
+    name: f,
+    type: type === 'BAR' ? 'bar' : 'line',
+    smooth,
+    barMaxWidth: 32,
+    data: data.map((r) => Number(r[f] ?? 0)),
+  }))
 
   return {
     tooltip: { trigger: 'axis' },
@@ -200,18 +174,16 @@ export function evaluateAlert(
   return { triggered: !!hit, value: hit ? hit[field] : undefined, field }
 }
 
-/** 图表点击下钻：按点击的分类/分组值过滤出行明细 */
+/** 图表点击下钻：按点击的分类值过滤出行明细 */
 export function filterDrillRows(
   columns: string[],
   rows: Record<string, any>[],
   config: ChartConfig,
-  point: { name?: string; seriesName?: string },
+  point: { name?: string },
 ): Record<string, any>[] {
   const xField = resolveField(columns, config.xField) || columns[0]
-  const seriesField = resolveField(columns, config.seriesField)
   return rows.filter((r) => {
     if (point.name !== undefined && xField && String(r[xField] ?? '') !== String(point.name)) return false
-    if (point.seriesName && seriesField && String(r[seriesField] ?? '') !== String(point.seriesName)) return false
     return true
   })
 }

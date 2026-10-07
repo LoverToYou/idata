@@ -170,7 +170,7 @@ function handleDrill(point: { name?: string; seriesName?: string }) {
   drillRows.value = rows
   const parts: string[] = []
   if (point.name !== undefined) parts.push(`分类：${point.name}`)
-  if (point.seriesName) parts.push(`分组：${point.seriesName}`)
+  if (point.seriesName) parts.push(`系列：${point.seriesName}`)
   drillDesc.value = parts.join(' / ')
   drillVisible.value = true
 }

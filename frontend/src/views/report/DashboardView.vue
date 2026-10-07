@@ -219,7 +219,7 @@ function handleDrill(card: DashboardItem, point: { name?: string; seriesName?: s
   drillRows.value = rows
   const descParts: string[] = []
   if (point.name !== undefined) descParts.push(`分类：${point.name}`)
-  if (point.seriesName) descParts.push(`分组：${point.seriesName}`)
+  if (point.seriesName) descParts.push(`系列：${point.seriesName}`)
   drillDesc.value = descParts.join(' / ')
   drillVisible.value = true
 }

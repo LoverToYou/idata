@@ -64,9 +64,6 @@
                 <el-select v-model="config.yFields" multiple placeholder="Y / 数值字段" size="small" style="width: 100%">
                   <el-option v-for="c in columns" :key="c" :label="c" :value="c" />
                 </el-select>
-                <el-select v-if="form.chartType === 'LINE' || form.chartType === 'BAR'" v-model="config.seriesField" clearable placeholder="分组字段（可选）" size="small" style="width: 100%">
-                  <el-option v-for="c in columns" :key="c" :label="c" :value="c" />
-                </el-select>
                 <el-input-number v-model="config.limit" :min="0" :max="5000" size="small" controls-position="right" style="width: 100%" placeholder="显示条数上限(0=全部)" />
                 <div v-if="isValueAxisChart" class="y-axis-range">
                   <el-input-number v-model="config.yMin" :controls="false" size="small" placeholder="Y轴最小" style="width: 100%" />
@@ -172,7 +169,7 @@ const form = reactive({
   folderId: null as number | null,
 })
 
-const config = reactive<ChartConfig>({ xField: undefined, yFields: [], seriesField: undefined, limit: 0, yMin: null, yMax: null, smooth: null })
+const config = reactive<ChartConfig>({ xField: undefined, yFields: [], limit: 0, yMin: null, yMax: null, smooth: null })
 
 const columns = computed(() => result.value?.columns || [])
 const isTableType = computed(() => (form.chartType || 'TABLE').toUpperCase() === 'TABLE')
